@@ -1,36 +1,74 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
 @theme {
-  --color-background: #000000;
-  --color-surface: #0f0f0f;
+  --color-background: #080808;
+  --color-surface: #111111;
   --color-primary: #c5a059;
-  --color-accent: #f5f0e8;
-  --color-text-muted: #a0a0a0;
+  --color-accent: #f0ebe0;
+  --color-text-muted: #6b6b6b;
 
-  --font-inter: "Inter", sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
 }
 
-:root {
-  --background: var(--color-background);
-  --foreground: var(--color-accent);
+* {
+  box-sizing: border-box;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-inter);
+html, body {
+  background: var(--color-background);
+  color: var(--color-accent);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Glassmorphism */
 .glass {
-  background: rgba(15, 15, 15, 0.7);
+  background: rgba(17, 17, 17, 0.8);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(197, 160, 89, 0.1);
 }
 
+/* Buttons */
 .btn-finch {
-  @apply bg-primary text-background px-6 py-2.5 rounded-sm font-bold uppercase tracking-widest transition-all hover:brightness-110 hover:scale-[1.02] active:scale-[0.98];
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: #000;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
+.btn-finch:hover { filter: brightness(1.1); transform: scale(1.02); }
+.btn-finch:active { transform: scale(0.98); }
+.btn-finch:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
+/* Inputs */
 .input-finch {
-  @apply bg-surface border border-primary/20 px-4 py-2.5 rounded-sm focus:outline-none focus:border-primary/50 transition-all text-accent placeholder:text-text-muted;
+  background: var(--color-surface);
+  border: 1px solid rgba(197,160,89,0.15);
+  color: var(--color-accent);
+  padding: 0.65rem 1rem;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
 }
+.input-finch::placeholder { color: var(--color-text-muted); }
+.input-finch:focus { border-color: rgba(197,160,89,0.5); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(197,160,89,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(197,160,89,0.4); }
+
+/* Table hover */
+.hover\:bg-white\/3:hover { background: rgba(255,255,255,0.03); }
+.bg-white\/1 { background: rgba(255,255,255,0.01); }
