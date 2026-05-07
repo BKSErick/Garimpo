@@ -11,11 +11,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const leads = await searchLeads(query);
-    
+    const result = await searchLeads(query);
+    const leads = result.leads;
+
     if (autoQualify && leads.length > 0) {
-        // Qualifica o primeiro lead como teste
-        await qualifyLead(leads[0].id);
+      await qualifyLead(leads[0].id);
     }
 
     return NextResponse.json({ success: true, count: leads.length, leads });

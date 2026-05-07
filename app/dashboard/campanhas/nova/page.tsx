@@ -4,9 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const NICHES = [
-  "Barbearias", "Clínicas de Estética", "Academias", "Restaurantes",
-  "Escritórios de Advocacia", "Imobiliárias", "Clínicas Odontológicas",
-  "Escolas de Idiomas", "Pet Shops", "Oficinas Mecânicas"
+  "Espaços para Eventos",
+  "Buffets e Gastronomia para Eventos",
+  "Fotógrafos de Eventos",
+  "Videomakers e Cinegrafistas",
+  "Decoração e Cenografia",
+  "DJ e Entretenimento",
+  "Locação de Móveis para Eventos",
+  "Sonorização e Iluminação",
+  "Cerimonialistas e Produtores",
+  "Floricultura e Arranjos",
+  "Bartenders e Open Bar",
+  "Segurança para Eventos",
 ];
 
 export default function NovaCampanhaPage() {
