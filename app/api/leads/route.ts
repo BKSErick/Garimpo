@@ -40,9 +40,18 @@ export async function GET(req: Request) {
           .select("*")
           .eq("niche", campaign.niche)
           .order("created_at", { ascending: false });
-          
-        return NextResponse.json({ 
-          leads: nicheLeads || [],
+
+        // Dedup por nome+phone para não retornar o mesmo negócio duas vezes
+        const seen = new Set<string>();
+        const deduped = (nicheLeads || []).filter((l: any) => {
+          const key = `${l.name?.toLowerCase()}|${l.phone || ""}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        return NextResponse.json({
+          leads: deduped,
           fallback: true,
           reason: "niche_match"
         });

@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { queryOpenRouter } from "./openrouter";
-import { FINCH_SYSTEM_PROMPT, getQualifyPrompt } from "./prompts";
+import { getSystemPrompt, DEFAULT_SYSTEM_PROMPT, getQualifyPrompt } from "./prompts";
 import { scrapeSite } from "./scraper";
 
 export const searchLeads = async (query: string, campaignId?: string, metadata?: { product?: string, icp?: string, location?: string }) => {
@@ -11,10 +11,12 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
   if (!activeCampaignId) {
     const { data: campaign } = await supabaseAdmin
       .from('campaigns')
-      .insert({ 
-        name: `Garimpo: ${query}`, 
+      .insert({
+        name: `Garimpo: ${query}`,
         niche: query,
         location: metadata?.location || "Brasil",
+        product_description: metadata?.product || null,
+        icp_description: metadata?.icp || null,
       })
       .select()
       .single();
@@ -100,18 +102,43 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
     }
   }
 
-  console.log(`🚀 Preparado para salvar ${leads.length} leads no Supabase (Schema Real)...`);
+  // Dedup: remove leads que já existem na campanha (mesmo phone ou nome)
+  let leadsToInsert = leads;
+  if (activeCampaignId) {
+    const { data: existing } = await supabaseAdmin
+      .from('leads')
+      .select('name, phone')
+      .eq('campaign_id', activeCampaignId);
+
+    if (existing && existing.length > 0) {
+      const existingNames = new Set(existing.map((l: any) => l.name?.toLowerCase()));
+      const existingPhones = new Set(existing.filter((l: any) => l.phone).map((l: any) => l.phone));
+      leadsToInsert = leads.filter((l: any) => {
+        const nameMatch = existingNames.has(l.name?.toLowerCase());
+        const phoneMatch = l.phone && existingPhones.has(l.phone);
+        return !nameMatch && !phoneMatch;
+      });
+      console.log(`🔍 Dedup: ${leads.length} encontrados → ${leadsToInsert.length} novos (${leads.length - leadsToInsert.length} duplicatas removidas)`);
+    }
+  }
+
+  if (leadsToInsert.length === 0) {
+    console.log("✅ Nenhum lead novo — todos já existem nesta campanha.");
+    return { campaignId: activeCampaignId, leads: [] };
+  }
+
+  console.log(`🚀 Preparado para salvar ${leadsToInsert.length} leads no Supabase...`);
 
   // Tentamos inserir com campaign_id, se falhar tentamos sem (legado)
   const { data: savedLeads, error } = await supabaseAdmin
     .from('leads')
-    .insert(leads)
+    .insert(leadsToInsert)
     .select();
- 
+
   if (error) {
     console.error("❌ Erro ao salvar leads (tentando fallback sem colunas extras):", error.message);
     // Fallback: remove colunas que podem não existir no schema, mas MANTÉM campaign_id
-    const fallbackLeads = leads.map((lead: any) => ({
+    const fallbackLeads = leadsToInsert.map((lead: any) => ({
       campaign_id: lead.campaign_id,
       name: lead.name,
       website: lead.website,
@@ -148,16 +175,36 @@ export const qualifyLead = async (leadId: string) => {
   if (!lead) return null;
 
   try {
-    // 1. Analisar site com Firecrawl (se tiver website)
+    // 1. Buscar contexto da campanha (produto e ICP)
+    let campaignContext: { product?: string; icp?: string } = {};
+    if (lead.campaign_id) {
+      const { data: campaign } = await supabaseAdmin
+        .from('campaigns')
+        .select('product_description, icp_description')
+        .eq('id', lead.campaign_id)
+        .single();
+      if (campaign) {
+        campaignContext = {
+          product: campaign.product_description || undefined,
+          icp: campaign.icp_description || undefined,
+        };
+      }
+    }
+
+    const systemPrompt = (campaignContext.product && campaignContext.icp)
+      ? getSystemPrompt(campaignContext.product, campaignContext.icp)
+      : DEFAULT_SYSTEM_PROMPT;
+
+    // 2. Analisar site com Firecrawl (se tiver website)
     let siteAnalysis = null;
     if (lead.website) {
       console.log(`Analisando site: ${lead.website}`);
       siteAnalysis = await scrapeSite(lead.website);
     }
 
-    // 2. Gerar copy com IA usando dados reais do site
-    const prompt = getQualifyPrompt(lead, siteAnalysis);
-    const whatsappCopy = await queryOpenRouter(prompt, FINCH_SYSTEM_PROMPT);
+    // 3. Gerar copy com IA usando dados reais do site + contexto da campanha
+    const prompt = getQualifyPrompt(lead, siteAnalysis, campaignContext);
+    const whatsappCopy = await queryOpenRouter(prompt, systemPrompt);
 
     // 3. Calcular score com base nas falhas detectadas
     // reviews está em lead.diagnosis.reviews (salvo pelo searchLeads), não como coluna direta
