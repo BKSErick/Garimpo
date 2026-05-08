@@ -1,18 +1,18 @@
 "use client";
 
-export const runtime = 'edge';
+export const dynamic = 'force-static';
 
-import { useEffect, useState, use, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { 
-  ChevronLeft, 
-  Search, 
-  Globe, 
-  ShieldAlert, 
-  CheckCircle2, 
-  Clock, 
-  Zap, 
-  MessageSquare, 
+import { useEffect, useState, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
+import {
+  ChevronLeft,
+  Search,
+  Globe,
+  ShieldAlert,
+  CheckCircle2,
+  Clock,
+  Zap,
+  MessageSquare,
   ExternalLink,
   MoreVertical,
   Filter,
@@ -20,9 +20,8 @@ import {
   Loader2
 } from "lucide-react";
 
-export default function CampanhaDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
-  const params = use(paramsPromise);
-  const { id } = params;
+export default function CampanhaDetailPage() {
+  const { id } = useParams() as { id: string };
   const router = useRouter();
   
   const [campaign, setCampaign] = useState<any>(null);

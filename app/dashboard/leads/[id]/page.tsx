@@ -1,9 +1,9 @@
 "use client";
 
-export const runtime = 'edge';
+export const dynamic = 'force-static';
 
-import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import {
   ChevronLeft,
   Zap,
@@ -23,9 +23,8 @@ import {
   Search
 } from "lucide-react";
 
-export default function LeadDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
-  const params = use(paramsPromise);
-  const { id } = params;
+export default function LeadDetailPage() {
+  const { id } = useParams() as { id: string };
   const router = useRouter();
   
   const [lead, setLead] = useState<any>(null);
