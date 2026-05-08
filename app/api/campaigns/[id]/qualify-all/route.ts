@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { qualifyLead } from "@/lib/prospector";
 
-export const maxDuration = 300;
+export const runtime = 'edge';
 
 export async function POST(
   req: Request,
