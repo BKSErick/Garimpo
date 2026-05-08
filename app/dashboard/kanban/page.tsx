@@ -151,16 +151,21 @@ function LeadCard({ lead, onQualify, onMove }: {
 export default function KanbanPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
 
   const fetchLeads = useCallback(async () => {
     try {
       const res = await fetch("/api/leads");
-      if (res.ok) {
-        const data = await res.json();
-        setLeads(data.leads || []);
+      const data = await res.json();
+      if (!res.ok) {
+        setFetchError(data.error || `Erro ${res.status} ao buscar leads`);
+        return;
       }
-    } catch (e) {
+      setFetchError(null);
+      setLeads(data.leads || []);
+    } catch (e: any) {
+      setFetchError(e.message || "Erro de rede ao buscar leads");
       console.error(e);
     } finally {
       setLoading(false);
@@ -180,12 +185,14 @@ export default function KanbanPage() {
   };
 
   const handleMove = async (id: string, newStatus: string) => {
+    const prevLeads = leads;
     setLeads(prev => prev.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    await fetch(`/api/leads/${id}/status`, {
+    const res = await fetch(`/api/leads/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status: newStatus }),
       headers: { "Content-Type": "application/json" }
     });
+    if (!res.ok) setLeads(prevLeads); // rollback on failure
   };
 
   const byStatus = (status: string) => leads.filter(l => l.status === status);
@@ -211,6 +218,11 @@ export default function KanbanPage() {
       </div>
 
       {/* Kanban Board */}
+      {fetchError && (
+        <div className="text-xs text-red-400 border border-red-500/20 bg-red-500/5 rounded-sm px-4 py-3">
+          ⚠ {fetchError}
+        </div>
+      )}
       {loading ? (
         <div className="flex-1 flex items-center justify-center text-text-muted text-xs uppercase tracking-widest">
           Carregando pipeline...

@@ -24,8 +24,12 @@ export const scrapeSite = async (url: string): Promise<SiteAnalysis> => {
 
   try {
     // Usando REST API v1 diretamente (compatível com tier gratuito)
+    const scrapeController = new AbortController();
+    const scrapeTimeout = setTimeout(() => scrapeController.abort(), 15000);
+
     const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
+      signal: scrapeController.signal,
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json"
@@ -34,11 +38,11 @@ export const scrapeSite = async (url: string): Promise<SiteAnalysis> => {
         url,
         formats: ["markdown"],
         onlyMainContent: true,
-        timeout: 20000,
+        timeout: 12000,
         // Webhook para crawls assíncronos (opcional)
         // webhook: { url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/firecrawl`, secret: process.env.FIRECRAWL_WEBHOOK_SECRET }
       })
-    });
+    }).finally(() => clearTimeout(scrapeTimeout));
 
     if (!res.ok) {
       console.error(`[Firecrawl] Erro HTTP ${res.status} para ${url}`);

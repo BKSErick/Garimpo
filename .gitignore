@@ -30,6 +30,13 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# scripts de debug com credenciais hardcoded — nunca commitar
+lib/debug_db.js
+lib/inspect_campaigns.js
+lib/inspect_columns.js
+lib/test_insert.js
+scratch_migrate.js
+
 # env files (can opt-in for committing if needed)
 .env*
 

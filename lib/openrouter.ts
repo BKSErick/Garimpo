@@ -2,8 +2,12 @@ export const queryOpenRouter = async (prompt: string, system: string = "Você é
   const apiKey = process.env.OPENROUTER_API_KEY;
   const model = process.env.AIOS_DEFAULT_MODEL || "anthropic/claude-3.5-sonnet";
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
+    signal: controller.signal,
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
@@ -18,8 +22,19 @@ export const queryOpenRouter = async (prompt: string, system: string = "Você é
       ],
       temperature: 0.3
     })
-  });
+  }).finally(() => clearTimeout(timeout));
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error(`[OpenRouter] Erro HTTP ${response.status}:`, errText);
+    throw new Error(`OpenRouter retornou ${response.status}: ${errText.substring(0, 200)}`);
+  }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "Erro ao gerar resposta.";
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) {
+    console.error("[OpenRouter] Resposta sem content:", JSON.stringify(data));
+    throw new Error("OpenRouter retornou resposta vazia");
+  }
+  return content;
 };

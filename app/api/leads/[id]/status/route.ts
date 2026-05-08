@@ -1,5 +1,19 @@
+export const runtime = 'edge';
+
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { data, error } = await supabaseAdmin
+    .from("leads")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+  return NextResponse.json({ lead: data });
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,12 +33,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Log activity
-  await supabaseAdmin.from("activity_logs").insert({
-    lead_id: id,
-    action: "status_change",
-    details: `Status atualizado para: ${status}`,
-  });
+  // Log activity (tabela opcional — falha silenciosa intencional)
+  try {
+    await supabaseAdmin.from("activity_logs").insert({
+      lead_id: id,
+      action: "status_change",
+      details: `Status atualizado para: ${status}`,
+    });
+  } catch (_) { /* tabela pode não existir — não bloqueia a resposta */ }
 
   return NextResponse.json({ lead: data });
 }
