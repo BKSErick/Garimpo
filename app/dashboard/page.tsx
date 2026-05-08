@@ -3,19 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Rocket, 
-  Search, 
-  MessageSquare, 
-  TrendingUp, 
-  Zap, 
-  ArrowRight, 
-  Clock, 
+import {
+  Rocket,
+  Search,
+  MessageSquare,
+  TrendingUp,
+  Zap,
+  ArrowRight,
+  Clock,
   CheckCircle2,
   AlertTriangle,
   Loader2,
   Users,
-  ChevronLeft
+  ChevronLeft,
+  Crosshair
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -168,8 +169,8 @@ export default function Dashboard() {
                 campaigns.slice(0, 3).map((c) => (
                   <Link href={`/dashboard/campanhas/${c.id}`} key={c.id} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-all group">
                     <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 bg-white/5 rounded-sm flex items-center justify-center text-text-muted group-hover:text-primary border border-white/5 group-hover:border-primary/20 transition-all font-black text-xs">
-                        {c.total_leads}
+                      <div className="w-12 h-12 bg-white/5 rounded-sm flex items-center justify-center text-text-muted group-hover:text-primary border border-white/5 group-hover:border-primary/20 transition-all">
+                        <Crosshair size={16} />
                       </div>
                       <div>
                         <p className="font-black text-sm uppercase tracking-tight">{c.name}</p>

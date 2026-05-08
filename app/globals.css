@@ -4,8 +4,11 @@
 @theme {
   --color-background: #080808;
   --color-surface: #111111;
-  --color-primary: #c5a059;
-  --color-accent: #f0ebe0;
+  --color-primary: #7C3AED;
+  --color-primary-hover: #8B5CF6;
+  --color-accent: #F5F3FF;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
   --color-text-muted: #6b6b6b;
 
   --font-sans: "Inter", system-ui, sans-serif;
@@ -45,14 +48,14 @@ html, body {
   transition: all 0.15s ease;
   white-space: nowrap;
 }
-.btn-finch:hover { filter: brightness(1.1); transform: scale(1.02); }
+.btn-finch:hover { background: var(--color-primary-hover); transform: scale(1.02); }
 .btn-finch:active { transform: scale(0.98); }
 .btn-finch:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 /* Inputs */
 .input-finch {
   background: var(--color-surface);
-  border: 1px solid rgba(197,160,89,0.15);
+  border: 1px solid rgba(124,58,237,0.15);
   color: var(--color-accent);
   padding: 0.65rem 1rem;
   font-size: 0.8rem;
@@ -61,13 +64,13 @@ html, body {
   width: 100%;
 }
 .input-finch::placeholder { color: var(--color-text-muted); }
-.input-finch:focus { border-color: rgba(197,160,89,0.5); }
+.input-finch:focus { border-color: rgba(124,58,237,0.5); }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(197,160,89,0.2); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(197,160,89,0.4); }
+::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.4); }
 
 /* Table hover */
 .hover\:bg-white\/3:hover { background: rgba(255,255,255,0.03); }

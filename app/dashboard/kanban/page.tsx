@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ClipboardCopy, Check, RefreshCw } from "lucide-react";
 
 type Lead = {
   id: string;
@@ -288,7 +289,10 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
                         onClick={() => copy(activeText)}
                         className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase hover:bg-primary hover:text-background transition-all flex items-center gap-1.5"
                       >
-                        {copied ? "✓ Copiado!" : "⧉ Copiar"}
+                        {copied
+                          ? <><Check size={11} className="text-success" /> Copiado!</>
+                          : <><ClipboardCopy size={11} /> Copiar</>
+                        }
                       </button>
                       <button
                         onClick={regenerateCopy}
@@ -296,7 +300,12 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
                         className="px-4 py-2 bg-white/5 border border-white/10 text-text-muted text-[9px] font-black uppercase hover:border-primary/30 hover:text-primary transition-all flex items-center gap-1.5 disabled:opacity-40"
                         title="Gerar nova variação de copy"
                       >
-                        {refreshing ? "⟳ Gerando..." : refreshed ? "✓ Atualizado!" : "↺ Nova Copy"}
+                        {refreshing
+                          ? <><RefreshCw size={11} className="animate-spin" /> Gerando...</>
+                          : refreshed
+                            ? <><Check size={11} className="text-success" /> Atualizado!</>
+                            : <><RefreshCw size={11} /> Nova Copy</>
+                        }
                       </button>
                       {d.phone && (
                         <a
