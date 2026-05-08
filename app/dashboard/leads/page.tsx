@@ -38,6 +38,16 @@ export default function LeadsPage() {
     return matchStatus && matchSearch;
   });
 
+  const handleDelete = async (id: string) => {
+    setLeads(prev => prev.filter(l => l.id !== id));
+    const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      const r = await fetch("/api/leads");
+      const d = await r.json();
+      setLeads(d.leads || []);
+    }
+  };
+
   const handleWhatsApp = (lead: any) => {
     const phone = lead.phone?.replace(/\D/g, "");
     const text = encodeURIComponent(lead.whatsapp_copy || "Olá!");
@@ -162,6 +172,13 @@ export default function LeadsPage() {
                       >
                         🔍
                       </Link>
+                      <button
+                        onClick={() => handleDelete(lead.id)}
+                        className="p-2 bg-white/5 border border-white/10 text-text-muted/40 rounded-sm hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/20 transition-all"
+                        title="Excluir lead"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </td>
                 </tr>

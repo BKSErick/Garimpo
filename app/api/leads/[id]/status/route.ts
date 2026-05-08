@@ -19,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const { status } = await req.json();
 
-  const validStatuses = ["extraido", "qualificado", "abordado", "convertido", "descartado"];
+  const validStatuses = ["extraido", "qualificado", "abordado", "convertido", "perdido", "descartado"];
   if (!validStatuses.includes(status)) {
     return NextResponse.json({ error: "Status inválido" }, { status: 400 });
   }
