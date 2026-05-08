@@ -63,6 +63,9 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"initial" | "followup">("initial");
   const [copied, setCopied] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
 
   useEffect(() => {
     fetch(`/api/leads/${id}/status`)
@@ -90,6 +93,23 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const regenerateCopy = async () => {
+    setRefreshing(true);
+    setRefreshError("");
+    try {
+      const res = await fetch(`/api/leads/${id}/regenerate-copy`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) { setRefreshError(data.error || "Erro ao gerar copy"); return; }
+      setDetail((prev: any) => ({ ...prev, whatsapp_copy: data.whatsapp_copy }));
+      setRefreshed(true);
+      setTimeout(() => setRefreshed(false), 2000);
+    } catch {
+      setRefreshError("Erro de rede");
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const d = detail;
@@ -260,12 +280,23 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
                       <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">{activeText}</p>
                     </div>
 
+                    {refreshError && (
+                      <p className="text-red-400 text-[9px] uppercase tracking-widest">{refreshError}</p>
+                    )}
                     <div className="flex gap-2">
                       <button
                         onClick={() => copy(activeText)}
                         className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase hover:bg-primary hover:text-background transition-all flex items-center gap-1.5"
                       >
                         {copied ? "✓ Copiado!" : "⧉ Copiar"}
+                      </button>
+                      <button
+                        onClick={regenerateCopy}
+                        disabled={refreshing}
+                        className="px-4 py-2 bg-white/5 border border-white/10 text-text-muted text-[9px] font-black uppercase hover:border-primary/30 hover:text-primary transition-all flex items-center gap-1.5 disabled:opacity-40"
+                        title="Gerar nova variação de copy"
+                      >
+                        {refreshing ? "⟳ Gerando..." : refreshed ? "✓ Atualizado!" : "↺ Nova Copy"}
                       </button>
                       {d.phone && (
                         <a

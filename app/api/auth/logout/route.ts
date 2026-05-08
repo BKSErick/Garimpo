@@ -4,9 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
-export async function POST(req: Request) {
-  const { email, password } = await req.json();
-
+export async function POST() {
   const response = NextResponse.json({ success: true });
   const cookieStore = await cookies();
 
@@ -24,11 +22,6 @@ export async function POST(req: Request) {
     }
   );
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    return NextResponse.json({ error: "Email ou senha incorretos." }, { status: 401 });
-  }
-
+  await supabase.auth.signOut();
   return response;
 }

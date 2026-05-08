@@ -1,16 +1,10 @@
-export const runtime = 'edge';
-
 import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
-  const { email, password } = await req.json();
-
-  const response = NextResponse.json({ success: true });
+export async function createRouteHandlerClient(response: NextResponse) {
   const cookieStore = await cookies();
-
-  const supabase = createServerClient(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -23,12 +17,4 @@ export async function POST(req: Request) {
       },
     }
   );
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    return NextResponse.json({ error: "Email ou senha incorretos." }, { status: 401 });
-  }
-
-  return response;
 }

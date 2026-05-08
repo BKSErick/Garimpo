@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", icon: "⚡", label: "Dashboard" },
@@ -12,6 +12,12 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
+  };
 
   return (
     <aside className="w-64 min-h-screen bg-surface border-r border-primary/10 flex flex-col justify-between shrink-0">
@@ -47,8 +53,8 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      {/* Footer: Credits */}
-      <div className="p-4 border-t border-primary/10">
+      {/* Footer: Credits + Logout */}
+      <div className="p-4 border-t border-primary/10 flex flex-col gap-3">
         <div className="glass p-3 rounded-sm">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[9px] font-black uppercase tracking-widest text-text-muted">Créditos</span>
@@ -59,6 +65,12 @@ export default function Sidebar() {
           </div>
           <p className="text-[9px] text-text-muted mt-2">Plano Starter</p>
         </div>
+        <button
+          onClick={handleLogout}
+          className="w-full px-4 py-2 text-[9px] font-black uppercase tracking-widest text-text-muted border border-white/10 rounded-sm hover:border-red-500/30 hover:text-red-400 transition-all"
+        >
+          ↩ Sair
+        </button>
       </div>
     </aside>
   );

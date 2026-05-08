@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function Home() {
+function LoginForm() {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const resetSuccess = searchParams.get("reset") === "success";
 
   const handleLogin = async () => {
     setLoading(true);
@@ -16,7 +20,7 @@ export default function Home() {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email, password }),
         headers: { "Content-Type": "application/json" }
       });
 
@@ -27,7 +31,7 @@ export default function Home() {
       } else {
         setError(data.error);
       }
-    } catch (err) {
+    } catch {
       setError("Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
@@ -45,36 +49,44 @@ export default function Home() {
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-text-muted">Prospecção de Outliers</p>
         </div>
 
+        {resetSuccess && (
+          <p className="text-green-400 text-[10px] uppercase font-bold text-center tracking-widest border border-green-500/20 bg-green-500/5 rounded-sm px-3 py-2">
+            ✓ Senha atualizada com sucesso
+          </p>
+        )}
+
         <form className="flex flex-col gap-6" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
           <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-primary/80">Acesso Restrito</label>
-            <input 
-              type="email" 
-              placeholder="seu@email.com" 
+            <label className="text-[10px] font-black uppercase tracking-widest text-primary/80">Email</label>
+            <input
+              type="email"
+              placeholder="seu@email.com"
               className="input-finch"
-              disabled
-              value="operador@finch.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoFocus
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center">
-              <label className="text-[10px] font-black uppercase tracking-widest text-primary/80">Chave de Segurança</label>
-              <button type="button" className="text-[9px] uppercase tracking-wider text-text-muted hover:text-primary transition-colors">Esqueci a chave</button>
+              <label className="text-[10px] font-black uppercase tracking-widest text-primary/80">Senha</label>
+              <a href="/recuperar-senha" className="text-[9px] uppercase tracking-wider text-text-muted hover:text-primary transition-colors">
+                Esqueci a senha
+              </a>
             </div>
-            <input 
-              type="password" 
-              placeholder="••••••••" 
+            <input
+              type="password"
+              placeholder="••••••••"
               className="input-finch"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
             />
           </div>
 
           {error && <p className="text-red-500 text-[10px] uppercase font-bold text-center tracking-widest">{error}</p>}
 
-          <button 
+          <button
             type="submit"
             className="btn-finch mt-2 flex justify-center items-center gap-2"
             disabled={loading}
@@ -93,5 +105,13 @@ export default function Home() {
         Holding Bilhon &copy; 2026 — Todos os direitos reservados
       </footer>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
