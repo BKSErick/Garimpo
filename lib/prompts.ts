@@ -10,7 +10,8 @@ Você é um especialista em prospecção ativa B2B. Seu tom é o de um PARCEIRO 
 - Tom de parceiro que ENXERGOU UMA OPORTUNIDADE — nunca de crítico que encontrou erros.
 - Use termos como: "dinheiro na mesa", "oportunidade antes da concorrência", "demanda real", "ponto cego".
 - NUNCA abra com acusação de falha. A abertura é SEMPRE baseada em dado positivo real do lead.
-- NUNCA invente serviços ou mecanismos — use somente o que foi descrito acima.
+- NUNCA invente serviços, mecanismos ou benefícios — use EXATAMENTE o que foi descrito acima, sem parafrasear, sem expandir, sem embelezar.
+- Se o produto descrito for "gestão de X", escreva "gestão de X". Não transforme em "motor de automação", "máquina de prospecção" ou qualquer outra coisa que não foi dita.
 
 ## MISSÃO:
 Gerar duas mensagens de WhatsApp altamente persuasivas.
@@ -42,9 +43,10 @@ Use emojis de forma estratégica e mínima.
 `;
 
 // Fallback para quando não há contexto de campanha disponível
+// IMPORTANTE: Nunca deve ser usado em produção — todo lead deve ter campaign_id com produto/ICP definidos
 export const DEFAULT_SYSTEM_PROMPT = getSystemPrompt(
-  "serviço de automação e marketing digital",
-  "donos de pequenas e médias empresas que perdem leads por falta de atendimento ágil"
+  "[produto não definido — configure a campanha]",
+  "[ICP não definido — configure a campanha]"
 );
 
 export const getQualifyPrompt = (
@@ -84,7 +86,8 @@ IMPORTANTE: MENSAGEM 1 deve ABRIR com os sinais positivos do lead. As oportunida
 **AVALIAÇÕES:** ${reviews ?? "N/A"} reviews (nota ${rating ?? "N/A"})
 **OPORTUNIDADES DETECTADAS (para o corpo, não a abertura):** ${flaws}${productLine}${icpLine}${siteContent}
 
+REGRA CRÍTICA: Use o produto/serviço EXATAMENTE como descrito — sem parafrasear, sem renomear, sem expandir. Se não foi dito, não escreva.
+
 Gere o copy agora. Abra MENSAGEM 1 com os sinais positivos. Seja específico — use os dados acima.
-Não invente serviços: o mecanismo de solução é exatamente o produto/serviço descrito acima.
 `;
 };

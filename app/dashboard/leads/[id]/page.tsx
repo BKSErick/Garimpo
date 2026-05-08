@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   FileText,
   Calendar,
-  Search
+  Search,
+  RefreshCw
 } from "lucide-react";
 
 export default function LeadDetailPage() {
@@ -31,6 +32,7 @@ export default function LeadDetailPage() {
   const [loading, setLoading] = useState(true);
   const [qualifying, setQualifying] = useState(false);
   const [activeTab, setActiveTab] = useState<"initial" | "followup">("initial");
+  const [refreshingCopy, setRefreshingCopy] = useState(false);
 
   useEffect(() => {
     fetchLead();
@@ -59,6 +61,18 @@ export default function LeadDetailPage() {
       console.error(e);
     } finally {
       setQualifying(false);
+    }
+  };
+
+  const handleRegenerateCopy = async () => {
+    setRefreshingCopy(true);
+    try {
+      const r = await fetch(`/api/leads/${id}/regenerate-copy`, { method: "POST" });
+      if (r.ok) fetchLead();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRefreshingCopy(false);
     }
   };
 
@@ -178,6 +192,17 @@ export default function LeadDetailPage() {
                 <MessageSquare className="text-green-500" size={20} />
                 Scripts de Abordagem
               </h3>
+              {lead.status === 'qualificado' && (
+                <button
+                  onClick={handleRegenerateCopy}
+                  disabled={refreshingCopy}
+                  className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-white/10 rounded-sm bg-white/5 hover:border-green-500/30 hover:text-green-400 text-text-muted transition-all disabled:opacity-40"
+                  title="Regerar Copy da IA"
+                >
+                  <RefreshCw size={12} className={refreshingCopy ? "animate-spin" : ""} />
+                  {refreshingCopy ? "Regerando..." : "Regerar Copy"}
+                </button>
+              )}
             </div>
 
             {lead.whatsapp_copy ? (
