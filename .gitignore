@@ -35,6 +35,8 @@ lib/debug_db.js
 lib/inspect_campaigns.js
 lib/inspect_columns.js
 lib/test_insert.js
+lib/check_leads.ts
+lib/count_db.ts
 scratch_migrate.js
 
 # env files (can opt-in for committing if needed)
