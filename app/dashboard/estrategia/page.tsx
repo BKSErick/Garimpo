@@ -31,7 +31,7 @@ export default function EstrategiaPage() {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [library, setLibrary] = useState<any[]>([]);
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   
   const [result, setResult] = useState<any>(null);
   const [form, setForm] = useState({
@@ -160,7 +160,7 @@ export default function EstrategiaPage() {
     }
   };
 
-  const handleDelete = async (id: number, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Excluir esta inteligência?")) return;
     try {
@@ -267,7 +267,7 @@ export default function EstrategiaPage() {
                   <Fingerprint size={24} className="text-primary" />
                   <h2 className="text-xl font-black text-white uppercase tracking-tighter">Parâmetros de Síntese</h2>
                </div>
-               {activeId && <BadgeMiner variant="outline" className="text-[8px] text-primary border-primary/20">EDITANDO SALVO</BadgeMiner>}
+               {activeId && <BadgeMiner variant="primary" className="text-[8px]">EDITANDO SALVO</BadgeMiner>}
             </div>
 
             <div className="space-y-8">
