@@ -9,6 +9,7 @@ const PLAN_LIMITS: Record<string, number> = {
 };
 
 import { supabaseAdmin } from "@/lib/supabase";
+import { searchLeads } from "@/lib/prospector";
 import { NextResponse } from "next/server";
 
 export async function GET() {
