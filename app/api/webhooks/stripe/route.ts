@@ -1,14 +1,6 @@
-export const runtime = 'edge';
-
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27-preview" as any,
-});
-
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 // Mapeamento de IDs de Preço do Stripe para os nomes de planos do ProspectOS
 // TODO: Substituir pelos seus IDs reais do Stripe Dashboard
@@ -19,6 +11,11 @@ const PRICE_TO_PLAN: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-01-27-preview" as any,
+  });
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
   const payload = await req.text();
   const sig = req.headers.get("stripe-signature");
 
