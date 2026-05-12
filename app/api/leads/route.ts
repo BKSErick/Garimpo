@@ -38,7 +38,6 @@ export async function GET(req: Request) {
         const { data: nicheLeads } = await supabaseAdmin
           .from("leads")
           .select("*")
-          .eq("niche", campaign.niche)
           .order("created_at", { ascending: false });
 
         // Dedup por nome+phone para não retornar o mesmo negócio duas vezes

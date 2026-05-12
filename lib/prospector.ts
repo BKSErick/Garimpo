@@ -6,20 +6,28 @@ import { scrapeSite } from "./scraper";
 export const searchLeads = async (query: string, campaignId?: string, metadata?: { product?: string, icp?: string, location?: string }) => {
   const apiKeys = (process.env.SERPER_API_KEYS || process.env.SERPER_API_KEY || "").split(",").map(k => k.trim()).filter(k => k);
 
-  // Criar campanha automaticamente
-  let activeCampaignId = campaignId;
+  if (apiKeys.length === 0) {
+    console.error("❌ ERRO: Nenhuma chave SERPER_API_KEY configurada no ambiente.");
+    return { leads: [], error: "Configuração de API pendente (Serper)." };
+  }
+
+    // Criar campanha automaticamente
+    let activeCampaignId = campaignId;
   if (!activeCampaignId) {
-    const { data: campaign } = await supabaseAdmin
+    const { data: campaign, error: campaignError } = await supabaseAdmin
       .from('campaigns')
       .insert({
         name: `Garimpo: ${query}`,
         niche: query,
-        location: metadata?.location || "Brasil",
-        product_description: metadata?.product || null,
-        icp_description: metadata?.icp || null,
+        location: metadata?.location || "Brasil"
       })
       .select()
       .single();
+    
+    if (campaignError) {
+      console.warn("⚠️ Falha ao criar campanha:", campaignError.message);
+      return { leads: [], error: "Falha ao criar registro da campanha." };
+    }
     activeCampaignId = campaign?.id;
   }
 
@@ -63,7 +71,7 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
     return { campaignId: activeCampaignId, leads: [], error: lastError };
   }
 
-  console.log("Serper Data Success:", JSON.stringify(data).substring(0, 200));
+  console.log(`Serper Data Success. Encontrados: ${data.places?.length || data.maps?.length || 0} locais.`);
   const places = data.places || data.maps || [];
 
   if (places.length === 0) {
@@ -78,13 +86,15 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
       website: place.website || null,
       phone: place.phoneNumber || null,
       address: place.address || null,
-      niche: query, // Esta coluna existe no banco
       status: 'extraido',
-      score: 0, // Esta coluna existe no banco
+      score: 0,
+      rating: place.rating || null,
+      reviews_count: place.ratingCount || 0,
       diagnosis: { 
         rating: place.rating, 
         reviews: place.ratingCount,
-        category: place.type 
+        category: place.type,
+        niche: query // Salvamos o nicho dentro do JSONB de diagnóstico como backup
       },
       raw_data: place
     };
@@ -137,28 +147,38 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
 
   if (error) {
     console.error("❌ Erro ao salvar leads (tentando fallback sem colunas extras):", error.message);
-    // Fallback: remove colunas que podem não existir no schema, mas MANTÉM campaign_id
-    const fallbackLeads = leadsToInsert.map((lead: any) => ({
+    // Fallback: remove colunas que podem não existir no schema
+    const cleanLeads = leadsToInsert.map((lead: any) => ({
       campaign_id: lead.campaign_id,
       name: lead.name,
       website: lead.website,
       phone: lead.phone,
       address: lead.address,
-      niche: lead.niche,
       status: lead.status,
       score: lead.score,
+      rating: lead.rating,
+      reviews_count: lead.reviews_count,
+      diagnosis: lead.diagnosis
     }));
-    const { data: retryLeads, error: retryError } = await supabaseAdmin
+
+    const { data: insertedLeads, error: leadsError } = await supabaseAdmin
       .from('leads')
-      .insert(fallbackLeads)
+      .insert(cleanLeads)
       .select();
 
-    if (retryError) {
-      console.error("❌ Falha total ao salvar leads:", retryError.message);
-      return { campaignId: activeCampaignId, leads: [], error: retryError.message };
+    if (leadsError) {
+      console.warn("⚠️ Falha crítica na inserção de leads:", leadsError.message);
+      return { 
+        campaignId: activeCampaignId, 
+        leads: [],
+        error: leadsError.message
+      };
     }
-    console.log(`✅ Salvos ${retryLeads?.length || 0} leads (via fallback, campaign_id preservado)`);
-    return { campaignId: activeCampaignId, leads: retryLeads || [] };
+
+    return { 
+      campaignId: activeCampaignId, 
+      leads: insertedLeads || [] 
+    };
   }
 
   console.log(`✅ Salvos ${savedLeads?.length || 0} leads com sucesso.`);
@@ -212,16 +232,19 @@ export const qualifyLead = async (leadId: string) => {
     const reviews = lead.diagnosis?.reviews || 0;
     const score = Math.min(50 + (flawCount * 8) + (reviews > 10 ? 15 : 0), 100);
 
-    // flaws é text[] no Supabase — enviar como array, não string
-    const flaws = siteAnalysis?.issues?.length ? siteAnalysis.issues : ["Site não analisado — sem URL disponível"];
-    const unique_mechanism = "IA de diagnóstico e copy personalizada";
+    const diagnosis = {
+      ...(lead.diagnosis || {}),
+      flaws: siteAnalysis?.issues?.length ? siteAnalysis.issues : ["Site não analisado — sem URL disponível"],
+      unique_mechanism: "IA de diagnóstico e copy personalizada",
+      vulnerability_level: flawCount > 3 ? "Crítica" : flawCount > 0 ? "Moderada" : "Baixa",
+      site_analysis: siteAnalysis
+    };
 
     const { data: updatedLead, error: updateError } = await supabaseAdmin
       .from('leads')
       .update({
         score,
-        flaws,
-        unique_mechanism,
+        diagnosis,
         whatsapp_copy: whatsappCopy,
         status: 'qualificado'
       })

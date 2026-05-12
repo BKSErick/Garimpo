@@ -1,7 +1,39 @@
 "use client";
 
+export const runtime = 'edge';
+
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ClipboardCopy, Check, RefreshCw } from "lucide-react";
+import { 
+  ClipboardCopy, 
+  Check, 
+  RefreshCw, 
+  Zap, 
+  X, 
+  Phone, 
+  Globe, 
+  MapPin, 
+  ExternalLink,
+  ChevronRight,
+  Trash2,
+  Trello,
+  Search,
+  Activity,
+  Target,
+  MessageSquare,
+  Loader2,
+  Filter,
+  ArrowUpRight,
+  ShieldAlert,
+  Dna,
+  Cpu,
+  Layers,
+  Sparkles,
+  Database,
+  ChevronDown
+} from "lucide-react";
+import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
+import { BadgeMiner } from "@/components/ui/BadgeMiner";
+import { ButtonMiner } from "@/components/ui/ButtonMiner";
 
 type Lead = {
   id: string;
@@ -25,18 +57,18 @@ type Lead = {
 type SortOption = "maior_score" | "menor_score" | "mais_recentes" | "mais_antigos";
 
 const COLUMNS = [
-  { key: "extraido",    label: "⛏ Extraídos",    color: "border-blue-500/30 bg-blue-500/5" },
-  { key: "qualificado", label: "⚡ Qualificados",  color: "border-yellow-500/30 bg-yellow-500/5" },
-  { key: "abordado",    label: "📩 Abordados",    color: "border-orange-500/30 bg-orange-500/5" },
-  { key: "convertido",  label: "💰 Convertidos",  color: "border-green-500/30 bg-green-500/5" },
-  { key: "perdido",     label: "✗ Perdidos",      color: "border-red-500/30 bg-red-500/5" },
+  { key: "extraido",    label: "Minério Bruto",    icon: Database,   color: "border-white/10",  glow: "" },
+  { key: "qualificado", label: "Refino (IA)",      icon: Sparkles,   color: "border-primary/40",   glow: "shadow-purple-sm" },
+  { key: "abordado",    label: "Operação Ativa",  icon: MessageSquare, color: "border-orange-500/30",   glow: "" },
+  { key: "convertido",  label: "Ouro Extraído",   icon: Check,    color: "border-success/40",   glow: "shadow-success-sm" },
+  { key: "perdido",     label: "Descarte",         icon: ShieldAlert, color: "border-error/20", glow: "" },
 ];
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "maior_score",   label: "Maior Score" },
-  { value: "menor_score",   label: "Menor Score" },
-  { value: "mais_recentes", label: "Mais Recentes" },
-  { value: "mais_antigos",  label: "Mais Antigos" },
+  { value: "maior_score",   label: "Riqueza (Score)" },
+  { value: "menor_score",   label: "Menor Potencial" },
+  { value: "mais_recentes", label: "Última Extração" },
+  { value: "mais_antigos",  label: "Histórico Antigo" },
 ];
 
 function sortLeads(leads: Lead[], sort: SortOption): Lead[] {
@@ -50,13 +82,6 @@ function sortLeads(leads: Lead[], sort: SortOption): Lead[] {
   });
 }
 
-function scoreLabel(score: number) {
-  if (score >= 90) return { label: "EXCELENTE", cls: "text-green-400 border-green-500/30 bg-green-500/10" };
-  if (score >= 70) return { label: "MUITO FORTE", cls: "text-yellow-400 border-yellow-500/30 bg-yellow-500/10" };
-  if (score >= 50) return { label: "BOM", cls: "text-blue-400 border-blue-500/30 bg-blue-500/10" };
-  return { label: "FRACO", cls: "text-text-muted border-white/10 bg-white/5" };
-}
-
 // ─── Lead Detail Modal ────────────────────────────────────────────────────────
 
 function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
@@ -65,8 +90,6 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
   const [tab, setTab] = useState<"initial" | "followup">("initial");
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [refreshed, setRefreshed] = useState(false);
-  const [refreshError, setRefreshError] = useState("");
 
   useEffect(() => {
     fetch(`/api/leads/${id}/status`)
@@ -74,21 +97,6 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
       .then(d => { setDetail(d.lead ?? null); setLoading(false); })
       .catch(() => setLoading(false));
   }, [id]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  const parseCopy = (s: string) => {
-    if (!s) return { initial: "", followup: "" };
-    const parts = s.split(/\[MENSAGEM 2\]/i);
-    return {
-      initial:  parts[0]?.replace(/\[MENSAGEM 1\]/i, "").trim() || "",
-      followup: parts[1]?.trim() || "",
-    };
-  };
 
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -98,301 +106,193 @@ function LeadModal({ id, onClose }: { id: string; onClose: () => void }) {
 
   const regenerateCopy = async () => {
     setRefreshing(true);
-    setRefreshError("");
     try {
       const res = await fetch(`/api/leads/${id}/regenerate-copy`, { method: "POST" });
       const data = await res.json();
-      if (!res.ok) { setRefreshError(data.error || "Erro ao gerar copy"); return; }
-      setDetail((prev: any) => ({ ...prev, whatsapp_copy: data.whatsapp_copy }));
-      setRefreshed(true);
-      setTimeout(() => setRefreshed(false), 2000);
-    } catch {
-      setRefreshError("Erro de rede");
+      if (res.ok) setDetail((prev: any) => ({ ...prev, whatsapp_copy: data.whatsapp_copy }));
     } finally {
       setRefreshing(false);
     }
   };
 
   const d = detail;
+  const parseCopy = (s: string) => {
+    if (!s) return { initial: "", followup: "" };
+    const parts = s.split(/\[MENSAGEM 2\]/i);
+    return {
+      initial:  parts[0]?.replace(/\[MENSAGEM 1\]/i, "").trim() || "",
+      followup: parts[1]?.trim() || "",
+    };
+  };
+
   const { initial, followup } = parseCopy(d?.whatsapp_copy || "");
   const activeText = tab === "initial" ? initial : followup;
-  const sl = d ? scoreLabel(d.score || 0) : null;
   const initials = d?.name?.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase() || "?";
 
   return (
-    <div className="fixed inset-0 z-50 flex">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Panel */}
-      <div className="relative ml-auto w-full max-w-lg h-full bg-[#0f0f0f] border-l border-white/10 overflow-y-auto shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 lg:p-10">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-500" onClick={onClose} />
+      <CardMiner elevated className="relative w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col p-0 border-white/5 animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+        
         {loading ? (
-          <div className="flex-1 flex items-center justify-center text-text-muted text-xs uppercase tracking-widest">
-            Carregando...
+          <div className="p-32 flex flex-col items-center justify-center">
+            <div className="relative mb-10">
+               <div className="absolute inset-0 bg-primary blur-3xl opacity-20 animate-pulse" />
+               <Cpu className="animate-spin text-primary relative" size={64} />
+            </div>
+            <p className="text-[11px] uppercase font-black tracking-[0.4em] text-white animate-pulse">Acessando Dossiê Restrito...</p>
+            <p className="text-[9px] text-text-muted uppercase font-bold tracking-widest mt-4 opacity-40 italic">Decriptando logs do Protocolo Nudge™</p>
           </div>
         ) : !d ? (
-          <div className="flex-1 flex items-center justify-center text-red-400 text-xs">Lead não encontrado.</div>
+          <div className="p-32 text-center">
+             <ShieldAlert size={64} className="text-error mx-auto mb-6 opacity-20" />
+             <p className="text-sm font-black text-error uppercase tracking-[0.3em]">Protocolo de Lead Inexistente.</p>
+          </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="sticky top-0 z-10 bg-[#0f0f0f]/95 backdrop-blur border-b border-white/5 px-6 py-5 flex items-start gap-4">
-              {/* Avatar */}
-              <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-black text-sm shrink-0">
+            <div className="p-10 lg:p-14 border-b border-white/5 bg-white/[0.01] flex items-center gap-10">
+              <div className="w-24 h-24 rounded-sm bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-black text-4xl shadow-purple shrink-0">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-black text-base leading-tight truncate">{d.name}</h3>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {d.website && (
-                    <span className="px-2 py-0.5 text-[8px] font-black uppercase border rounded-sm border-white/20 text-text-muted">
-                      PERFIL PÚBLICO
-                    </span>
-                  )}
-                  {sl && (
-                    <span className={`px-2 py-0.5 text-[8px] font-black uppercase border rounded-sm ${sl.cls}`}>
-                      {sl.label}
-                    </span>
-                  )}
-                  <span className="text-primary font-black text-lg leading-none">{d.score || 0}</span>
+                <div className="flex items-center gap-4 mb-4">
+                  <BadgeMiner variant="primary" className="text-[10px] font-black tracking-widest px-4 py-1">RANK #{d.score || 0}</BadgeMiner>
+                  <div className="h-4 w-px bg-white/10" />
+                  <span className="text-[10px] text-text-muted font-black uppercase tracking-[0.3em] opacity-40 italic">{d.status}</span>
                 </div>
+                <h3 className="font-black text-5xl lg:text-6xl uppercase tracking-tighter text-white leading-[0.9] truncate">{d.name}</h3>
               </div>
-              <button
-                onClick={onClose}
-                className="shrink-0 w-8 h-8 flex items-center justify-center rounded-sm hover:bg-white/10 text-text-muted hover:text-white transition-colors"
-              >
-                ✕
+              <button onClick={onClose} className="w-16 h-16 flex items-center justify-center rounded-sm bg-white/5 hover:bg-white/10 text-text-muted hover:text-white transition-all border border-white/5">
+                <X size={24} />
               </button>
             </div>
 
-            <div className="flex flex-col gap-6 p-6">
-              {/* BIO */}
-              {d.address && (
-                <section>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Bio</p>
-                  <p className="text-xs text-white/70 leading-relaxed">{d.address}</p>
-                </section>
-              )}
+            <div className="flex-1 overflow-y-auto p-10 lg:p-14 custom-scrollbar space-y-16 bg-black/40">
+              <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-16">
+                <div className="space-y-12">
+                  <section>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-6 flex items-center gap-3">
+                      <Target size={14} /> GEO-COORDENADAS
+                    </p>
+                    <div className="p-8 bg-white/[0.02] border border-white/5 rounded-sm flex gap-6 items-start group hover:border-primary/20 transition-all">
+                      <MapPin size={24} className="text-primary mt-1 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <div>
+                         <p className="text-xl text-white font-black uppercase tracking-tight leading-tight">{d.address || 'Localização não rastreada'}</p>
+                         <p className="text-[10px] text-text-muted font-bold tracking-[0.2em] mt-3 uppercase opacity-40">Verificado via Satélite Google Maps</p>
+                      </div>
+                    </div>
+                  </section>
 
-              {/* Contexto Estratégico */}
-              {d.diagnosis?.mechanism && (
-                <section>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Contexto Estratégico</p>
-                  <div className="bg-white/[0.03] border border-white/8 rounded-sm p-4">
-                    <p className="text-xs text-white/80 leading-relaxed">{d.diagnosis.mechanism}</p>
-                  </div>
-                </section>
-              )}
-
-              {/* Contato */}
-              <section>
-                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-3">Contato</p>
-                <div className="flex flex-col gap-2">
-                  {d.address && <p className="text-[10px] text-white/60 flex items-center gap-2">📍 {d.address.split(",").pop()?.trim()}</p>}
-                  {d.phone    && <p className="text-[10px] text-white/60 flex items-center gap-2">📱 {d.phone}</p>}
-                  {d.website  && (
-                    <a href={d.website} target="_blank" rel="noreferrer" className="text-[10px] text-primary flex items-center gap-2 hover:underline truncate">
-                      🔗 {d.website}
-                    </a>
-                  )}
-                </div>
-              </section>
-
-              {/* Qualificação — barras de score */}
-              {d.score > 0 && (
-                <section>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-3">Qualificação</p>
-                  <div className="flex flex-col gap-3">
-                    {[
-                      { label: "Score Geral",  value: d.score || 0 },
-                      { label: "Potencial",    value: Math.round((d.score || 0) * 0.92) },
-                      { label: "Acessibilidade", value: d.phone ? Math.round((d.score || 0) * 0.88) : 20 },
-                    ].map(item => (
-                      <div key={item.label}>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-[9px] uppercase tracking-widest text-text-muted font-bold">{item.label}</span>
-                          <span className="text-[9px] font-black text-primary">{item.value}</span>
+                  {d.whatsapp_copy && (
+                    <section className="p-10 bg-primary/[0.03] border border-primary/10 rounded-sm relative group overflow-hidden">
+                      <div className="absolute top-0 right-0 p-6 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
+                        <MessageSquare size={200} />
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10 relative">
+                        <div>
+                           <h4 className="text-[11px] font-black uppercase tracking-[0.5em] text-primary">Script de Ataque (IA)</h4>
+                           <p className="text-[9px] text-text-muted uppercase font-bold tracking-widest mt-1 opacity-40">Geração via Protocolo Nudge™</p>
                         </div>
-                        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary rounded-full transition-all"
-                            style={{ width: `${item.value}%` }}
-                          />
+                        <div className="flex gap-2 p-1 bg-black/40 rounded-sm border border-white/5">
+                          {["initial", "followup"].map((t: any) => (
+                            <button key={t} onClick={() => setTab(t)} className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${tab === t ? "bg-primary text-white shadow-purple-sm" : "text-text-muted hover:text-white"}`}>
+                              {t === "initial" ? "Abordagem" : "Follow-up"}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
 
-              {/* Sinais Estratégicos */}
-              <section>
-                <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-3">Sinais Estratégicos</p>
-                <div className="flex flex-col gap-3">
-                  {d.query_origin && (
-                    <div className="bg-white/[0.03] border border-white/8 rounded-sm p-3">
-                      <p className="text-[8px] uppercase tracking-widest text-text-muted mb-1">Query de Origem</p>
-                      <p className="text-[10px] text-white/70">{d.query_origin}</p>
-                    </div>
+                      <div className="relative pl-8 mb-12">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/40 rounded-full" />
+                        <p className="text-lg text-white/90 leading-relaxed whitespace-pre-wrap font-medium selection:bg-primary/30">{activeText}</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-4 relative">
+                        <ButtonMiner onClick={() => copy(activeText)} icon={copied ? Check : ClipboardCopy} className={`h-14 px-10 min-w-[200px] transition-all ${copied ? 'bg-success border-success text-white' : ''}`}>
+                          {copied ? "COPIADO" : "COPIAR SCRIPT"}
+                        </ButtonMiner>
+                        <ButtonMiner variant="outline" onClick={regenerateCopy} disabled={refreshing} icon={RefreshCw} className={`h-14 px-10 border-white/10 ${refreshing ? "animate-pulse" : ""}`}>
+                          {refreshing ? "CALIBRANDO..." : "NOVA VARIAÇÃO"}
+                        </ButtonMiner>
+                        {d.phone && (
+                          <ButtonMiner variant="primary" className="bg-success hover:bg-success/90 h-14 px-10 shadow-success border-none ml-auto" onClick={() => {
+                            const phone = d.phone.replace(/\D/g, "");
+                            window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(activeText)}`, "_blank");
+                          }} icon={MessageSquare}>
+                            ENVIAR WHATSAPP
+                          </ButtonMiner>
+                        )}
+                      </div>
+                    </section>
                   )}
-                  <div className="flex flex-wrap gap-2">
-                    {d.website && <span className="px-2 py-1 text-[8px] font-black uppercase border border-white/10 rounded-sm text-white/50">TEM SITE PRÓPRIO</span>}
-                    {d.phone   && <span className="px-2 py-1 text-[8px] font-black uppercase border border-white/10 rounded-sm text-white/50">TEM TELEFONE VISÍVEL</span>}
-                    {d.reviews_count > 0 && <span className="px-2 py-1 text-[8px] font-black uppercase border border-white/10 rounded-sm text-white/50">{d.reviews_count} AVALIAÇÕES</span>}
-                    {d.niche   && <span className="px-2 py-1 text-[8px] font-black uppercase border border-yellow-500/20 rounded-sm text-yellow-400">NICHO: {d.niche}</span>}
-                    {d.diagnosis?.vulnerability_level && (
-                      <span className="px-2 py-1 text-[8px] font-black uppercase border border-orange-500/20 rounded-sm text-orange-400">
-                        ⚡ {d.diagnosis.vulnerability_level}
-                      </span>
-                    )}
-                  </div>
                 </div>
-              </section>
 
-              {/* Mensagens de Prospecção */}
-              {d.whatsapp_copy && (
-                <section>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-3">Mensagens de Prospecção</p>
-                  <div className="flex flex-col gap-3">
-                    {/* Tab selector */}
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setTab("initial")}
-                        className={`px-3 py-1.5 text-[8px] font-black uppercase rounded-sm transition-all border ${tab === "initial" ? "bg-primary text-background border-primary" : "bg-white/5 text-text-muted border-white/10 hover:border-primary/30"}`}
-                      >
-                        1ª Mensagem — Abertura
-                      </button>
-                      {followup && (
-                        <button
-                          onClick={() => setTab("followup")}
-                          className={`px-3 py-1.5 text-[8px] font-black uppercase rounded-sm transition-all border ${tab === "followup" ? "bg-primary text-background border-primary" : "bg-white/5 text-text-muted border-white/10 hover:border-primary/30"}`}
-                        >
-                          Follow-up
-                        </button>
-                      )}
+                <div className="space-y-12">
+                  <section>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary mb-8">INDICADORES DE VALOR</p>
+                    <div className="space-y-8">
+                      {[
+                        { label: "Vulnerabilidade", value: d.score || 0, icon: ShieldAlert },
+                        { label: "Qualidade do Lead", value: Math.min(100, Math.round((d.score || 0) * 1.2)), icon: Sparkles },
+                      ].map(item => (
+                        <div key={item.label} className="group/item">
+                          <div className="flex justify-between mb-3">
+                            <span className="text-[10px] uppercase tracking-[0.25em] text-text-muted font-black flex items-center gap-2 group-hover/item:text-white transition-colors">
+                               <item.icon size={12} className="text-primary opacity-40 group-hover/item:opacity-100" />
+                               {item.label}
+                            </span>
+                            <span className="text-sm font-black text-white tracking-tighter">{item.value}%</span>
+                          </div>
+                          <div className="h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <div className="h-full bg-primary shadow-purple transition-all duration-1000" style={{ width: `${item.value}%` }} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
+                  </section>
 
-                    {tab === "followup" && followup && (
-                      <p className="text-[8px] uppercase tracking-widest text-text-muted font-bold">
-                        FOLLOW-UP — SE NÃO RESPONDER EM ~3 DIAS
-                      </p>
-                    )}
-
-                    <div className="bg-white/[0.03] border border-white/8 rounded-sm p-4">
-                      <p className="text-xs text-white/80 leading-relaxed whitespace-pre-wrap">{activeText}</p>
+                  <section className="space-y-6">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">DADOS TÁTICOS</p>
+                    <div className="flex flex-col gap-4">
+                       <div className="p-5 bg-white/[0.02] border border-white/5 rounded-sm flex items-center justify-between group hover:border-white/20 transition-all">
+                          <div className="flex items-center gap-4">
+                             <Globe size={18} className="text-text-muted opacity-40 group-hover:text-primary transition-colors" />
+                             <span className="text-[10px] font-black text-white uppercase tracking-widest">{d.website ? d.website.replace(/https?:\/\//, '').split('/')[0] : "SEM SITE"}</span>
+                          </div>
+                          {d.website && (
+                             <button onClick={() => window.open(d.website, "_blank")} className="text-text-muted hover:text-white transition-colors">
+                                <ExternalLink size={14} />
+                             </button>
+                          )}
+                       </div>
+                       <div className="p-5 bg-white/[0.02] border border-white/5 rounded-sm flex items-center justify-between group hover:border-white/20 transition-all">
+                          <div className="flex items-center gap-4">
+                             <Phone size={18} className="text-text-muted opacity-40 group-hover:text-primary transition-colors" />
+                             <span className="text-[10px] font-black text-white uppercase tracking-widest">{d.phone || "PRIVADO"}</span>
+                          </div>
+                          {d.phone && (
+                             <button onClick={() => window.open(`tel:${d.phone}`, "_self")} className="text-text-muted hover:text-white transition-colors">
+                                <ArrowUpRight size={14} />
+                             </button>
+                          )}
+                       </div>
                     </div>
+                  </section>
 
-                    {refreshError && (
-                      <p className="text-red-400 text-[9px] uppercase tracking-widest">{refreshError}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => copy(activeText)}
-                        className="px-4 py-2 bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase hover:bg-primary hover:text-background transition-all flex items-center gap-1.5"
-                      >
-                        {copied
-                          ? <><Check size={11} className="text-success" /> Copiado!</>
-                          : <><ClipboardCopy size={11} /> Copiar</>
-                        }
-                      </button>
-                      <button
-                        onClick={regenerateCopy}
-                        disabled={refreshing}
-                        className="px-4 py-2 bg-white/5 border border-white/10 text-text-muted text-[9px] font-black uppercase hover:border-primary/30 hover:text-primary transition-all flex items-center gap-1.5 disabled:opacity-40"
-                        title="Gerar nova variação de copy"
-                      >
-                        {refreshing
-                          ? <><RefreshCw size={11} className="animate-spin" /> Gerando...</>
-                          : refreshed
-                            ? <><Check size={11} className="text-success" /> Atualizado!</>
-                            : <><RefreshCw size={11} /> Nova Copy</>
-                        }
-                      </button>
-                      {d.phone && (
-                        <a
-                          href={`https://wa.me/55${d.phone.replace(/\D/g, "")}?text=${encodeURIComponent(activeText)}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-4 py-2 bg-green-500/10 border border-green-500/30 text-green-400 text-[9px] font-black uppercase hover:bg-green-500 hover:text-background transition-all flex items-center gap-1.5"
-                        >
-                          📱 Abrir WhatsApp
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Análise da IA */}
-              {d.diagnosis?.mechanism && (
-                <section>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-text-muted mb-2">Análise da IA</p>
-                  <p className="text-xs text-white/60 italic leading-relaxed">"{d.diagnosis.mechanism}"</p>
-                </section>
-              )}
-
-              {/* Link externo */}
-              {d.website && (
-                <a
-                  href={d.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[9px] text-primary uppercase tracking-widest font-bold hover:underline flex items-center gap-1"
-                >
-                  ↗ Abrir perfil completo no navegador
-                </a>
-              )}
+                  <CardMiner className="p-8 border-dashed border-white/10 bg-transparent text-center space-y-4">
+                     <p className="text-[9px] text-text-muted uppercase font-black tracking-widest opacity-40">Mecanismo Único Detalhado</p>
+                     <p className="text-xs text-white/60 italic font-medium leading-relaxed">
+                        "{d.diagnosis?.unique_mechanism || "Sonda IA ainda em processo de refinamento narrativo."}"
+                     </p>
+                  </CardMiner>
+                </div>
+              </div>
             </div>
           </>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Status Dropdown ──────────────────────────────────────────────────────────
-
-function StatusDropdown({ lead, onMove }: { lead: Lead; onMove: (id: string, status: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  const handleOpen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 4, left: rect.left });
-    }
-    setOpen(!open);
-  };
-
-  return (
-    <div className="relative">
-      <button
-        ref={btnRef}
-        onClick={handleOpen}
-        className="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider border rounded-sm flex items-center gap-1 bg-white/5 border-white/20 hover:border-primary/40 transition-colors"
-      >
-        {lead.status} ▾
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-50 min-w-[130px] glass border border-white/10 rounded-sm shadow-xl overflow-hidden"
-            style={{ top: pos.top, left: pos.left }}
-          >
-            {COLUMNS.map(col => (
-              <button
-                key={col.key}
-                onClick={(e) => { e.stopPropagation(); onMove(lead.id, col.key); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-[9px] font-bold uppercase hover:bg-primary/10 hover:text-primary transition-colors ${col.key === lead.status ? "text-primary bg-primary/5" : "text-text-muted"}`}
-              >
-                {col.key === lead.status ? "✓ " : ""}{col.key}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      </CardMiner>
     </div>
   );
 }
@@ -406,114 +306,64 @@ function LeadCard({ lead, onQualify, onMove, onOpen, onDelete }: {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleWhatsApp = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!lead.phone) return;
-    const phone = lead.phone.replace(/\D/g, "");
-    const text = encodeURIComponent(lead.whatsapp_copy || "Olá! Identifiquei algo interessante no seu negócio...");
-    window.open(`https://wa.me/55${phone}?text=${text}`, "_blank");
-  };
-
   return (
-    <div
+    <CardMiner 
       onClick={() => onOpen(lead.id)}
-      className="glass border border-primary/10 rounded-sm p-4 flex flex-col gap-3 hover:border-primary/30 transition-all cursor-pointer"
+      className="p-6 gap-6 flex flex-col hover:border-primary/50 transition-all cursor-pointer group bg-black/40 border-white/5 hover:bg-primary/[0.02]"
     >
-      {/* Header */}
-      <div className="flex justify-between items-start gap-2">
+      <div className="flex justify-between items-start gap-4">
         <div className="flex-1 min-w-0">
-          <h4 className="font-black text-xs leading-tight truncate">{lead.name}</h4>
-          {lead.address && <p className="text-[9px] text-text-muted mt-0.5 truncate">{lead.address}</p>}
+          <h4 className="font-black text-base uppercase tracking-tight text-white group-hover:text-primary transition-colors truncate mb-2 leading-none">
+            {lead.name}
+          </h4>
+          <div className="flex items-center gap-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+             <p className="text-[9px] text-text-muted font-black uppercase tracking-[0.2em] opacity-40">{lead.niche || "GERAL"}</p>
+          </div>
         </div>
         {lead.score > 0 && (
-          <div className="shrink-0 text-center">
-            <div className="text-primary font-black text-lg leading-none">{lead.score}</div>
-            <div className="text-[8px] text-text-muted uppercase">score</div>
+          <div className="shrink-0 flex flex-col items-end">
+            <span className="text-primary font-black text-2xl leading-none drop-shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]">{lead.score}</span>
+            <span className="text-[8px] text-text-muted uppercase font-black tracking-widest mt-1 opacity-40">SCORE</span>
           </div>
         )}
       </div>
 
-      {/* Status dropdown */}
-      <StatusDropdown lead={lead} onMove={onMove} />
-
-      {/* Diagnosis pill */}
-      {lead.diagnosis?.vulnerability_level && (
-        <span className="px-2 py-0.5 text-[8px] font-black uppercase border rounded-sm w-fit bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-          ⚡ {lead.diagnosis.vulnerability_level}
-        </span>
-      )}
-
-      {/* Flaws */}
-      {lead.diagnosis?.flaws && lead.diagnosis.flaws.length > 0 && (
-        <div>
-          <button
-            className="text-[9px] uppercase tracking-widest text-text-muted hover:text-primary transition-colors"
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-          >
-            {expanded ? "▲" : "▼"} {lead.diagnosis.flaws.length} falhas detectadas
-          </button>
-          {expanded && (
-            <ul className="mt-2 flex flex-col gap-1">
-              {lead.diagnosis.flaws.map((f, i) => (
-                <li key={i} className="text-[9px] text-red-400 flex gap-1"><span>✗</span> {f}</li>
-              ))}
-            </ul>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+           <div className="flex items-center gap-2 text-[10px] font-black text-text-muted/60 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-sm border border-white/5 group-hover:border-primary/20 transition-all">
+              <Globe size={12} className="opacity-40" />
+              {lead.website ? "ONLINE" : "OFFLINE"}
+           </div>
         </div>
-      )}
-
-      {/* Copy preview */}
-      {lead.whatsapp_copy && (
-        <p className="text-[9px] text-text-muted italic line-clamp-2 border-l-2 border-primary/20 pl-2">
-          {lead.whatsapp_copy.substring(0, 120)}...
-        </p>
-      )}
-
-      {/* Actions */}
-      <div className="flex gap-2 flex-wrap mt-1" onClick={e => e.stopPropagation()}>
-        {lead.status === "extraido" && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onQualify(lead.id); }}
-            className="px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary text-[9px] font-black uppercase hover:bg-primary hover:text-background transition-all"
-          >
-            ⚡ Qualificar IA
-          </button>
-        )}
-        {lead.status === "qualificado" && (
-          <button
-            onClick={handleWhatsApp}
-            className="px-3 py-1.5 bg-green-500/10 border border-green-500/30 text-green-400 text-[9px] font-black uppercase hover:bg-green-500 hover:text-background transition-all flex items-center gap-1"
-          >
-            📱 WhatsApp
-          </button>
+        {lead.diagnosis?.vulnerability_level && (
+          <BadgeMiner variant="primary" className="text-[8px] py-1 px-3 font-black tracking-widest shadow-purple-sm">
+            {lead.diagnosis.vulnerability_level.toUpperCase()}
+          </BadgeMiner>
         )}
       </div>
 
-      {/* Contact info + delete */}
-      <div className="flex items-center justify-between pt-1 border-t border-white/5" onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between pt-5 border-t border-white/5 opacity-40 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+        <div className="flex gap-4">
+          <button className="text-text-muted hover:text-white transition-colors" title="Ver Site">
+            <Globe size={14} />
+          </button>
+          <button className="text-text-muted hover:text-white transition-colors" title="Ligar">
+            <Phone size={14} />
+          </button>
+        </div>
         <div className="flex gap-3">
-          {lead.phone && (
-            <a href={`tel:${lead.phone}`} className="text-[9px] text-text-muted hover:text-primary transition-colors">
-              📞 {lead.phone}
-            </a>
+          {lead.status === "extraido" && (
+            <button onClick={(e) => { e.stopPropagation(); onQualify(lead.id); }} className="p-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white rounded-sm transition-all border border-primary/20 shadow-purple-sm" title="Qualificar IA">
+              <Zap size={14} />
+            </button>
           )}
-          {lead.website && (
-            <a href={lead.website} target="_blank" rel="noreferrer" className="text-[9px] text-text-muted hover:text-primary transition-colors truncate">
-              🌐 Site
-            </a>
-          )}
+          <button onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }} className="p-2.5 text-text-muted hover:text-error hover:bg-error/10 border border-transparent hover:border-error/20 rounded-sm transition-all">
+            <Trash2 size={14} />
+          </button>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(lead.id); }}
-          className="w-5 h-5 flex items-center justify-center text-[9px] text-text-muted/40 hover:bg-red-500/20 hover:text-red-400 transition-colors rounded-sm"
-          title="Excluir lead"
-        >
-          ✕
-        </button>
       </div>
-    </div>
+    </CardMiner>
   );
 }
 
@@ -525,7 +375,6 @@ export default function KanbanPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [qualifyingId, setQualifyingId] = useState<string | null>(null);
   const [sort, setSort] = useState<SortOption>("maior_score");
-  const [sortOpen, setSortOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -533,12 +382,11 @@ export default function KanbanPage() {
     try {
       const res = await fetch("/api/leads");
       const data = await res.json();
-      if (!res.ok) { setFetchError(data.error || `Erro ${res.status}`); return; }
-      setFetchError(null);
+      if (!res.ok) throw new Error(data.error);
       setLeads(data.leads || []);
+      setFetchError(null);
     } catch (e: any) {
-      setFetchError(e.message || "Erro de rede");
-      console.error(e);
+      setFetchError(e.message);
     } finally {
       setLoading(false);
     }
@@ -557,161 +405,142 @@ export default function KanbanPage() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm("Confirmar descarte permanente do prospecto?")) return;
     setLeads(prev => prev.filter(l => l.id !== id));
-    const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
-    if (!res.ok) fetchLeads(); // rollback on failure
+    await fetch(`/api/leads/${id}`, { method: "DELETE" });
   };
 
   const handleMove = async (id: string, newStatus: string) => {
-    const prev = leads;
     setLeads(p => p.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    const res = await fetch(`/api/leads/${id}/status`, {
+    await fetch(`/api/leads/${id}/status`, {
       method: "PATCH",
       body: JSON.stringify({ status: newStatus }),
       headers: { "Content-Type": "application/json" },
     });
-    if (!res.ok) setLeads(prev);
   };
 
   const q = search.toLowerCase();
-  const filtered = q
-    ? leads.filter(l => l.name?.toLowerCase().includes(q) || l.address?.toLowerCase().includes(q))
-    : leads;
-
+  const filtered = q ? leads.filter(l => l.name?.toLowerCase().includes(q) || l.niche?.toLowerCase().includes(q)) : leads;
   const byStatus = (status: string) => sortLeads(filtered.filter(l => l.status === status), sort);
-  const currentSortLabel = SORT_OPTIONS.find(o => o.value === sort)?.label || "Ordenar";
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
+      <div className="relative">
+        <div className="absolute inset-0 bg-primary blur-3xl opacity-20 animate-pulse" />
+        <Loader2 className="animate-spin text-primary relative" size={64} />
+      </div>
+      <div className="text-center">
+        <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white animate-pulse">Sincronizando Fluxo de Extração...</p>
+        <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-2 opacity-40 italic">Acessando Kernel ProspectOS v1.0</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8 flex flex-col gap-6 min-h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-6 flex-wrap">
-        <div>
-          <h2 className="text-4xl font-black tracking-tighter">Kanban</h2>
-          <p className="text-xs font-bold uppercase tracking-widest text-text-muted mt-1">Pipeline de Conversão</p>
+    <div className="p-8 max-w-[1800px] mx-auto flex flex-col gap-10 animate-in fade-in duration-1000 h-[calc(100vh-100px)]">
+      
+      {/* Kanban Header HUD */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10 bg-black/40 border border-white/5 p-10 rounded-sm relative overflow-hidden group shrink-0">
+        <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
+        <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+           <Trello size={200} />
         </div>
 
-        <div className="flex items-center gap-6 flex-wrap">
-          {/* Counter bar */}
-          <div className="flex gap-4 items-center">
-            <div className="text-center">
-              <div className="text-xl font-black">{leads.length}</div>
-              <div className="text-[8px] uppercase tracking-widest text-text-muted">Total</div>
-            </div>
-            <div className="w-px h-8 bg-white/10" />
-            {COLUMNS.map(col => (
-              <div key={col.key} className="text-center">
-                <div className="text-xl font-black">{leads.filter(l => l.status === col.key).length}</div>
-                <div className="text-[8px] uppercase tracking-widest text-text-muted">{col.key}</div>
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center gap-4">
+             <BadgeMiner variant="primary" className="py-1 px-4 text-[10px] font-black tracking-widest shadow-purple-sm">Sovereign Pipeline</BadgeMiner>
+             <div className="h-4 w-px bg-white/10" />
+             <span className="text-text-muted text-[10px] font-black uppercase tracking-widest opacity-40 italic">TABULEIRO DE CONVERSÃO v2.0</span>
+          </div>
+          <h1 className="text-6xl font-black tracking-tighter uppercase leading-none text-white">
+            EXTRACTION <span className="text-primary">LINE</span>
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-6 flex-wrap lg:flex-nowrap">
+           <div className="relative group/search">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted opacity-40 group-focus-within/search:text-primary group-focus-within/search:opacity-100 transition-all" size={20} />
+              <input 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="RASTREAR PROSPECTO..."
+                className="bg-black/40 border-2 border-white/5 h-16 pl-14 pr-8 text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none focus:border-primary/40 focus:bg-primary/[0.02] transition-all rounded-sm w-[350px] placeholder:text-white/10"
+              />
+           </div>
+           
+           <div className="flex items-center gap-2">
+              <div className="relative">
+                 <select 
+                   value={sort}
+                   onChange={e => setSort(e.target.value as SortOption)}
+                   className="appearance-none bg-black/40 border-2 border-white/5 h-16 pl-6 pr-14 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-primary/40 transition-all rounded-sm cursor-pointer"
+                 >
+                    {SORT_OPTIONS.map(opt => (
+                       <option key={opt.value} value={opt.value} className="bg-black text-white">{opt.label}</option>
+                    ))}
+                 </select>
+                 <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" size={16} />
               </div>
-            ))}
-          </div>
-
-          {/* Sort dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setSortOpen(!sortOpen)}
-              className="px-4 py-2 glass border border-white/20 text-[10px] font-black uppercase hover:border-primary/40 transition-all flex items-center gap-2"
-            >
-              {currentSortLabel} ▾
-            </button>
-            {sortOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setSortOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 z-20 min-w-[160px] glass border border-white/10 rounded-sm shadow-xl overflow-hidden">
-                  {SORT_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setSort(opt.value); setSortOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-[9px] font-bold uppercase hover:bg-primary/10 hover:text-primary transition-colors ${opt.value === sort ? "text-primary bg-primary/5" : "text-text-muted"}`}
-                    >
-                      {opt.value === sort ? "✓ " : ""}{opt.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          <button
-            onClick={fetchLeads}
-            className="px-4 py-2 glass border border-primary/20 text-primary text-[10px] font-black uppercase hover:bg-primary/10 transition-all"
-          >
-            ↻ Atualizar
-          </button>
+              <ButtonMiner onClick={fetchLeads} variant="outline" icon={RefreshCw} className="h-16 px-8 border-white/10 text-text-muted hover:text-white" />
+           </div>
         </div>
-      </div>
-
-      {/* Search bar */}
-      <div className="relative max-w-sm">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-xs pointer-events-none">🔍</span>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Buscar empresa, CNPJ ou local..."
-          className="w-full pl-8 pr-4 py-2 glass border border-white/10 text-[10px] font-bold text-white placeholder:text-text-muted focus:border-primary/40 focus:outline-none transition-colors rounded-sm"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white text-xs"
-          >
-            ✕
-          </button>
-        )}
       </div>
 
       {fetchError && (
-        <div className="text-xs text-red-400 border border-red-500/20 bg-red-500/5 rounded-sm px-4 py-3">
-          ⚠ {fetchError}
-        </div>
+        <CardMiner className="border-error/20 bg-error/[0.03] p-6 flex items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+           <ShieldAlert size={20} className="text-error" />
+           <p className="text-[11px] font-black uppercase tracking-[0.3em] text-error">PROTOCOLO DE INTERRUPÇÃO: {fetchError}</p>
+        </CardMiner>
       )}
 
-      {loading ? (
-        <div className="flex-1 flex items-center justify-center text-text-muted text-xs uppercase tracking-widest">
-          Carregando pipeline...
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 flex-1">
-          {COLUMNS.map((col) => {
-            const colLeads = byStatus(col.key);
-            return (
-              <div key={col.key} className={`flex flex-col gap-3 rounded-sm border p-4 ${col.color}`}>
-                <div className="flex justify-between items-center">
-                  <h3 className="text-[10px] font-black uppercase tracking-widest">{col.label}</h3>
-                  <span className="text-[10px] font-black text-text-muted bg-white/5 px-2 py-0.5 rounded-full">
-                    {colLeads.length}
-                  </span>
+      {/* Board Layout */}
+      <div className="flex gap-8 overflow-x-auto pb-8 custom-scrollbar flex-1 min-h-0">
+        {COLUMNS.map((col) => {
+          const colLeads = byStatus(col.key);
+          const Icon = col.icon;
+          return (
+            <div key={col.key} className="flex flex-col gap-8 min-w-[350px] max-w-[400px] flex-1 min-h-0 group/col">
+              <div className={`p-6 bg-white/[0.01] border-b-2 ${col.color} flex items-center justify-between transition-all duration-500 group-hover/col:bg-white/[0.03] ${col.glow} shrink-0`}>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-white/5 rounded-sm border border-white/5 group-hover/col:border-primary/20 transition-all">
+                    <Icon size={18} className="text-primary" />
+                  </div>
+                  <div>
+                     <h3 className="text-[12px] font-black uppercase tracking-[0.3em] text-white">{col.label}</h3>
+                     <p className="text-[8px] text-text-muted font-black uppercase tracking-widest mt-1 opacity-40 italic">Módulo Operacional</p>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-320px)]">
-                  {colLeads.length === 0 ? (
-                    <div className="text-center text-[9px] uppercase tracking-widest text-text-muted/50 py-8 border border-dashed border-white/5 rounded-sm">
-                      {search ? "Sem resultados" : "Vazio"}
-                    </div>
-                  ) : (
-                    colLeads.map((lead) => (
-                      <div key={lead.id} className={qualifyingId === lead.id ? "opacity-50 pointer-events-none" : ""}>
-                        <LeadCard
-                          lead={lead}
-                          onQualify={handleQualify}
-                          onMove={handleMove}
-                          onOpen={setSelectedId}
-                          onDelete={handleDelete}
-                        />
-                      </div>
-                    ))
-                  )}
+                <div className="text-xl font-black text-white tracking-tighter bg-white/5 w-12 h-12 flex items-center justify-center rounded-sm border border-white/5">
+                  {colLeads.length}
                 </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+              
+              <div className="flex flex-col gap-6 overflow-y-auto custom-scrollbar px-1 pr-3 pb-12 flex-1">
+                {colLeads.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-32 border border-dashed border-white/5 rounded-sm opacity-10 group-hover/col:opacity-20 transition-all">
+                    <Icon size={48} className="mb-6" />
+                    <p className="text-[10px] uppercase font-black tracking-[0.4em]">Linha de Extração Vazia</p>
+                  </div>
+                ) : (
+                  colLeads.map((lead) => (
+                    <div key={lead.id} className={`${qualifyingId === lead.id ? "opacity-30 pointer-events-none scale-95" : "scale-100"} transition-all duration-500`}>
+                      <LeadCard
+                        lead={lead}
+                        onQualify={handleQualify}
+                        onMove={handleMove}
+                        onOpen={setSelectedId}
+                        onDelete={handleDelete}
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-      {/* Lead Detail Modal */}
-      {selectedId && (
-        <LeadModal id={selectedId} onClose={() => setSelectedId(null)} />
-      )}
+      {selectedId && <LeadModal id={selectedId} onClose={() => setSelectedId(null)} />}
     </div>
   );
 }

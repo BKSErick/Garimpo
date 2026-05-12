@@ -16,16 +16,23 @@ import {
   Loader2,
   Users,
   ChevronLeft,
-  Crosshair
+  Crosshair,
+  Activity,
+  ShieldCheck,
+  Target,
+  BarChart3,
+  Sparkles,
+  Command,
+  Database,
+  Cpu,
+  Trash2,
+  MapPin as LucideMapPin
 } from "lucide-react";
 
-const STATUS_COLORS: Record<string, string> = {
-  extraido: "text-gray-400 border-white/5 bg-white/2",
-  qualificado: "text-primary border-primary/20 bg-primary/5",
-  abordado: "text-blue-400 border-blue-500/20 bg-blue-500/5",
-  convertido: "text-green-400 border-green-500/20 bg-green-500/5",
-  descartado: "text-red-400 border-red-500/20 bg-red-500/5",
-};
+import { KpiMiner } from "@/components/ui/KpiMiner";
+import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
+import { BadgeMiner } from "@/components/ui/BadgeMiner";
+import { ButtonMiner } from "@/components/ui/ButtonMiner";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -35,8 +42,10 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [greeting, setGreeting] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const h = new Date().getHours();
     if (h < 12) setGreeting("Bom dia");
     else if (h < 18) setGreeting("Boa tarde");
@@ -79,183 +88,342 @@ export default function Dashboard() {
     }
   };
 
+  const deleteCampaign = async (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("Deseja realmente excluir esta linha de extração?")) return;
+    
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "DELETE",
+        body: JSON.stringify({ id }),
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        setCampaigns(campaigns.filter(c => c.id !== id));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  if (!mounted) return null;
+
   return (
-    <div className="p-8 flex flex-col gap-10 max-w-7xl mx-auto">
-      {/* Header HUD */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.2em]">{greeting}, OUTLIER</p>
+    <div className="p-8 flex flex-col gap-10 max-w-7xl mx-auto animate-in fade-in duration-1000">
+      
+      {/* Cinematic Header HUD */}
+      <div className="relative group overflow-hidden rounded-sm border border-white/5 bg-black/40 backdrop-blur-xl p-10">
+        {/* Background Grid Motif */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
+             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
+        <div className="absolute -inset-1 bg-gradient-to-r from-primary/10 via-transparent to-primary/5 blur-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000" />
+        
+        <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-10">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="flex -space-x-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-purple" />
+                <div className="w-2 h-2 rounded-full bg-primary/40 animate-pulse delay-75" />
+              </div>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.4em]">{greeting}, OPERADOR ESTRATÉGICO</p>
+            </div>
+            
+            <h2 className="text-6xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9] text-white">
+              Command <span className="text-primary drop-shadow-[0_0_25px_rgba(var(--primary-rgb),0.3)]">Center</span>
+            </h2>
           </div>
-          <h2 className="text-6xl font-black tracking-tighter uppercase leading-none">Command Center</h2>
-          <p className="text-sm text-text-muted mt-3 max-w-md">Bem-vindo ao motor de prospecção Finch. Sua base de dados de leads de alta conversão está atualizada.</p>
-        </div>
-        <div className="flex gap-4">
-          <Link
-            href="/dashboard/campanhas/nova"
-            className="btn-finch py-4 px-8 flex items-center gap-3 text-sm"
-          >
-            <Rocket size={18} /> Iniciar Novo Garimpo
-          </Link>
+
+          <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+            <ButtonMiner 
+              onClick={() => router.push('/dashboard/campanhas/nova')}
+              icon={Rocket}
+              className="h-16 px-12 shadow-purple text-xs group/btn"
+            >
+              INICIAR EXTRAÇÃO <ChevronLeft size={16} className="rotate-180 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+            </ButtonMiner>
+          </div>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        
-        {/* Left Stats Pillar */}
-        <div className="xl:col-span-2 flex flex-col gap-8">
-          
-          {/* Global Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "Leads Totais", value: stats.total, icon: Users, color: "text-primary" },
-              { label: "Qualificados", value: stats.qualificados, icon: Zap, color: "text-orange-500" },
-              { label: "Abordados", value: stats.abordados, icon: TrendingUp, color: "text-green-500" },
-              { label: "Convertidos", value: stats.fechados, icon: CheckCircle2, color: "text-blue-500" },
-            ].map((s) => (
-              <div key={s.label} className="glass p-6 rounded-sm border border-white/5 group hover:border-primary/30 transition-all">
-                <s.icon size={16} className={`${s.color} mb-4`} />
-                <div className="text-3xl font-black tracking-tighter">{s.value}</div>
-                <div className="text-[9px] font-black uppercase tracking-widest text-text-muted mt-1">{s.label}</div>
-              </div>
-            ))}
-          </div>
+      {/* Global Performance HUD */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <KpiMiner 
+          title="Base Total" 
+          value={stats.total} 
+          icon={Users} 
+          trend={{ value: '+12%', positive: true }} 
+          className="bg-white/[0.02] border-white/5"
+        />
+        <KpiMiner 
+          title="Qualificados" 
+          value={stats.qualificados} 
+          icon={Zap} 
+          trend={{ value: 'IA', positive: true }} 
+          className="bg-primary/[0.03] border-primary/10"
+        />
+        <KpiMiner 
+          title="Em Abordagem" 
+          value={stats.abordados} 
+          icon={MessageSquare} 
+          className="bg-white/[0.02] border-white/5"
+        />
+        <KpiMiner 
+          title="Conversão" 
+          value={stats.fechados} 
+          icon={CheckCircle2} 
+          trend={{ value: 'ROAS 8.2x', positive: true }}
+          className="bg-white/[0.02] border-white/5"
+        />
+      </div>
 
-          {/* Quick Prospecting HUD */}
-          <div className="glass border border-primary/20 bg-primary/[0.02] p-8 rounded-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-sm bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                <Search size={20} />
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        
+        {/* Primary Operations Pillar */}
+        <div className="xl:col-span-8 flex flex-col gap-8">
+          
+          {/* Quick Prospecting Miner Tool */}
+          <CardMiner elevated className="relative overflow-hidden border-primary/20 bg-primary/[0.02] p-10 group">
+            <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:opacity-10 transition-opacity pointer-events-none">
+              <Command size={120} className="text-primary" />
+            </div>
+            
+            <div className="flex items-center gap-5 mb-10">
+              <div className="w-14 h-14 rounded-sm bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-purple-sm">
+                <Search size={28} />
               </div>
               <div>
-                <h3 className="text-xl font-black tracking-tight uppercase">Garimpo Instantâneo</h3>
-                <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest">Extração direta do Google Maps em 15 segundos</p>
+                <CardMinerTitle className="uppercase text-2xl tracking-tighter">Garimpo Instantâneo</CardMinerTitle>
+                <p className="text-[10px] text-text-muted uppercase font-black tracking-[0.3em] mt-1.5 opacity-60">Sondagem direta via API Geográfica e Diagnóstico de Falsa Ruína</p>
               </div>
             </div>
-            <div className="flex gap-4 items-end">
-              <div className="flex-1 flex flex-col gap-2">
+
+            <div className="flex flex-col md:flex-row gap-5 items-stretch relative">
+              <div className="flex-1 relative group/input">
+                <div className="absolute inset-y-0 left-6 flex items-center text-text-muted group-focus-within/input:text-primary transition-colors">
+                  <Target size={20} />
+                </div>
                 <input
                   type="text"
-                  placeholder='Ex: "Contabilidades em Curitiba"'
-                  className="input-finch py-4 text-base"
+                  placeholder='Ex: "Oficinas de Luxo em Belo Horizonte"'
+                  className="w-full bg-black border border-white/10 pl-16 pr-8 h-20 text-lg font-bold rounded-sm focus:outline-none focus:border-primary/50 focus:bg-white/[0.03] transition-all placeholder:opacity-20 shadow-inner"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && startGarimpo()}
                 />
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20 hidden md:block">
+                  <kbd className="px-2 py-1 bg-white/10 rounded-sm text-[8px] font-black tracking-widest text-white border border-white/10">ENTER</kbd>
+                </div>
               </div>
-              <button
-                className="btn-finch py-4 px-8 shrink-0 flex items-center gap-2"
+              <ButtonMiner
+                isLoading={loading}
+                icon={Zap}
                 onClick={startGarimpo}
-                disabled={loading}
+                className="h-20 px-14 text-sm font-black tracking-[0.2em]"
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />}
-                Iniciar
-              </button>
+                DETONAR
+              </ButtonMiner>
             </div>
-          </div>
+            
+            <div className="flex items-center gap-4 mt-8 pt-8 border-t border-white/5">
+               <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-text-muted opacity-40">
+                  <Activity size={12} /> FREQUÊNCIA: 4.2 GHZ
+               </div>
+               <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-text-muted opacity-40 border-l border-white/5 pl-4">
+                  <Database size={12} /> BUFFER: CLEAR
+               </div>
+            </div>
+          </CardMiner>
 
-          {/* Recent Campaigns Table */}
-          <div className="glass border border-white/5 rounded-sm overflow-hidden">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em]">Fluxos de Prospecção</h3>
-              <Link href="/dashboard/campanhas" className="text-[10px] text-primary uppercase font-black hover:underline flex items-center gap-1">Ver Todos <ArrowRight size={10} /></Link>
-            </div>
+          {/* Active Extraction Lines */}
+          <CardMiner className="p-0 overflow-hidden border-white/5 bg-black/20">
+            <CardMinerHeader className="p-10 border-b border-white/5 mb-0 bg-white/[0.01] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                 <Activity className="text-primary animate-[pulse_3s_linear_infinite]" size={22} />
+                 <CardMinerTitle className="uppercase text-lg">Linhas de Extração Ativas</CardMinerTitle>
+              </div>
+              <Link href="/dashboard/campanhas" className="text-[10px] text-primary uppercase font-black tracking-[0.3em] hover:brightness-125 flex items-center gap-3 group transition-all">
+                CENTRAL DE OPERAÇÕES <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </CardMinerHeader>
             <div className="divide-y divide-white/5">
               {campaigns.length === 0 ? (
-                <div className="p-12 text-center text-text-muted text-[10px] uppercase tracking-widest">Aguardando primeira campanha...</div>
+                <div className="p-24 text-center">
+                   <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-6 opacity-20">
+                      <Target size={32} />
+                   </div>
+                   <p className="text-text-muted text-[10px] uppercase font-black tracking-[0.4em] opacity-30">Nenhum comando de extração pendente</p>
+                </div>
               ) : (
-                campaigns.slice(0, 3).map((c) => (
-                  <Link href={`/dashboard/campanhas/${c.id}`} key={c.id} className="p-6 flex items-center justify-between hover:bg-white/[0.02] transition-all group">
-                    <div className="flex items-center gap-6">
-                      <div className="w-12 h-12 bg-white/5 rounded-sm flex items-center justify-center text-text-muted group-hover:text-primary border border-white/5 group-hover:border-primary/20 transition-all">
-                        <Crosshair size={16} />
+                campaigns.slice(0, 5).map((c) => (
+                  <div key={c.id} className="relative group border-l-4 border-transparent hover:border-primary transition-all hover:bg-white/[0.02]">
+                    <Link href={`/dashboard/campanhas/${c.id}`} className="p-10 flex items-center justify-between">
+                      <div className="flex items-center gap-8">
+                        <div className="w-16 h-16 bg-white/5 rounded-sm flex items-center justify-center text-text-muted group-hover:text-primary border border-white/5 group-hover:border-primary/20 transition-all shadow-md">
+                          <Crosshair size={24} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-3 mb-2">
+                            <p className="font-black text-xl uppercase tracking-tighter text-white group-hover:text-primary transition-colors leading-none">{c.name}</p>
+                            <BadgeMiner variant="muted" className="text-[8px] py-0 border-white/5">{c.niche}</BadgeMiner>
+                          </div>
+                          <div className="flex items-center gap-4 opacity-40">
+                            <span className="text-[10px] text-text-muted uppercase font-black tracking-widest flex items-center gap-2">
+                                <MapPin size={10} className="text-primary" /> {c.location || "Brasil"}
+                            </span>
+                            <span className="w-1 h-1 bg-white/20 rounded-full" />
+                            <span className="text-[10px] text-text-muted uppercase font-black tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-black text-sm uppercase tracking-tight">{c.name}</p>
-                        <p className="text-[10px] text-text-muted uppercase tracking-wider">{c.niche} · {c.location || "Brasil"}</p>
+                      <div className="flex items-center gap-12">
+                        <div className="text-right hidden sm:block">
+                          <div className="text-3xl font-black text-white leading-none tracking-tighter">{c.total_leads}</div>
+                          <div className="text-[9px] text-text-muted uppercase font-black tracking-[0.2em] mt-2 opacity-60">Extraídos</div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                           <button 
+                              onClick={(e) => deleteCampaign(e, c.id)}
+                              className="w-10 h-10 rounded-sm flex items-center justify-center border border-white/5 text-text-muted hover:text-error hover:border-error/30 hover:bg-error/5 transition-all opacity-0 group-hover:opacity-100"
+                              title="Excluir Linha"
+                           >
+                              <Trash2 size={16} />
+                           </button>
+                           <div className="w-12 h-12 rounded-full flex items-center justify-center border border-white/5 group-hover:border-primary/30 group-hover:text-primary transition-all group-hover:bg-primary/5">
+                              <ArrowRight size={20} />
+                           </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-6">
-                      <div className="text-right hidden md:block">
-                        <div className="text-xs font-black">{c.total_leads}</div>
-                        <div className="text-[8px] text-text-muted uppercase font-black">Leads</div>
-                      </div>
-                      <ChevronLeft size={16} className="rotate-180 text-text-muted group-hover:text-primary transition-all" />
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))
               )}
             </div>
-          </div>
+            <div className="p-6 border-t border-white/5 flex items-center justify-center">
+              <Link href="/dashboard/campanhas" className="flex items-center gap-3 px-8 py-3 rounded-sm border border-primary/30 bg-primary/10 text-primary text-[10px] font-black uppercase tracking-[0.3em] hover:bg-primary/20 hover:border-primary/60 transition-all group/link">
+                <ArrowRight size={14} className="group-hover/link:translate-x-1 transition-transform" />
+                ACESSAR TODOS OS FLUXOS DE DADOS
+              </Link>
+            </div>
+          </CardMiner>
         </div>
 
-        {/* Right Sidebar: Activity & Leads */}
-        <div className="flex flex-col gap-8">
+        {/* Intelligence Side Pillar */}
+        <div className="xl:col-span-4 flex flex-col gap-8">
           
-          {/* Recent Leads Feed */}
-          <div className="glass border border-white/5 rounded-sm overflow-hidden flex flex-col h-full">
-            <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em]">Ouro Recém Extraído</h3>
-              <Zap size={14} className="text-primary animate-pulse" />
-            </div>
-            <div className="p-4 flex flex-col gap-3 overflow-y-auto max-h-[600px]">
+          {/* Live Extraction Log Feed */}
+          <CardMiner className="p-0 overflow-hidden flex flex-col h-[820px] border-white/5 bg-black/40 backdrop-blur-sm">
+            <CardMinerHeader className="p-10 border-b border-white/5 mb-0 bg-white/[0.02] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                 <div className="relative">
+                    <Zap size={22} className="text-primary animate-pulse" />
+                    <div className="absolute -inset-1 bg-primary/20 blur-md rounded-full animate-pulse" />
+                 </div>
+                 <CardMinerTitle className="uppercase text-lg">Log de Extração</CardMinerTitle>
+              </div>
+              <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-primary animate-ping" />
+                 <span className="text-[9px] font-black text-primary tracking-[0.2em]">LIVE</span>
+              </div>
+            </CardMinerHeader>
+            <div className="p-8 flex flex-col gap-5 overflow-y-auto custom-scrollbar flex-1">
               {recentLeads.length === 0 ? (
-                <div className="p-10 text-center text-text-muted text-[10px] uppercase tracking-widest">Nenhum lead ainda.</div>
+                <div className="flex flex-col items-center justify-center h-full opacity-20 gap-6">
+                   <Database size={48} />
+                   <p className="text-[10px] text-text-muted uppercase font-black tracking-[0.3em]">Sincronizando Base...</p>
+                </div>
               ) : (
                 recentLeads.map((lead) => (
                   <Link href={`/dashboard/leads/${lead.id}`} key={lead.id}
-                    className="p-4 bg-white/[0.02] border border-white/5 hover:border-primary/20 hover:bg-white/[0.04] rounded-sm transition-all flex flex-col gap-3">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col gap-1 min-w-0">
-                        <p className="font-black text-xs uppercase tracking-tight truncate">{lead.name}</p>
-                        <p className="text-[9px] text-text-muted truncate">{lead.website || "Sem site"}</p>
+                    className="p-6 bg-white/[0.02] border border-white/5 hover:border-primary/40 hover:bg-primary/[0.03] rounded-sm transition-all flex flex-col gap-5 group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <ArrowRight size={12} className="text-primary" />
+                    </div>
+                    
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex flex-col gap-2 min-w-0">
+                        <p className="font-black text-sm uppercase tracking-tight truncate text-white group-hover:text-primary transition-colors">{lead.name}</p>
+                        <div className="flex items-center gap-3">
+                           <p className="text-[9px] text-text-muted font-bold truncate opacity-40 uppercase tracking-widest">{lead.website ? lead.website.replace(/https?:\/\//, '') : "Sem Site"}</p>
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <div className="text-lg font-black text-primary leading-none">{lead.score || "—"}</div>
-                        <div className="text-[8px] text-text-muted uppercase font-black">Score</div>
+                        <div className="text-2xl font-black text-primary leading-none tracking-tighter drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.3)]">{lead.score || "—"}</div>
+                        <div className="text-[8px] text-text-muted uppercase font-black tracking-widest mt-2">SCORE</div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                      <span className={`px-1.5 py-0.5 text-[8px] font-black uppercase border rounded-sm ${STATUS_COLORS[lead.status] || STATUS_COLORS.extraido}`}>
-                        {lead.status === "qualificado" ? "⚡ QUALIFICADO" : lead.status}
-                      </span>
-                      <span className="text-[8px] text-text-muted uppercase font-bold flex items-center gap-1">
-                        <Clock size={8} /> {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <BadgeMiner variant={lead.status === "qualificado" ? "primary" : "muted"} className="text-[8px] py-1 border-white/5">
+                        {lead.status === "qualificado" ? "QUALIFICADO" : "EXTRAÍDO"}
+                      </BadgeMiner>
+                      <span className="text-[9px] text-text-muted uppercase font-black tracking-widest flex items-center gap-2 opacity-30">
+                        <Clock size={12} /> {new Date(lead.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </Link>
                 ))
               )}
             </div>
-            <Link href="/dashboard/leads" className="mt-auto p-4 border-t border-white/5 text-center text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-primary hover:bg-white/[0.02] transition-all">
-              Ver Toda a Extração
+            <Link href="/dashboard/leads" className="mt-auto p-8 border-t border-white/5 text-center text-[11px] font-black uppercase tracking-[0.4em] text-text-muted hover:text-primary hover:bg-white/[0.03] transition-all bg-white/[0.01]">
+              VER RELATÓRIO COMPLETO
             </Link>
-          </div>
+          </CardMiner>
 
-          {/* System Health */}
-          <div className="glass border border-white/5 p-6 rounded-sm bg-black/40">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-4 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> Sistema Finch Ativo
+          {/* Infrastructure Integrity HUD */}
+          <CardMiner className="p-8 bg-black/40 border-white/5 overflow-hidden group">
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-primary/5 blur-3xl rounded-full group-hover:bg-primary/10 transition-all" />
+            
+            <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-text-muted mb-8 flex items-center gap-4">
+              <div className="w-2.5 h-2.5 rounded-full bg-success animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.4)]" /> 
+              Satus de Infraestrutura
             </h4>
-            <div className="flex flex-col gap-3">
-              <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
-                <span className="text-text-muted">API Serper (Maps)</span>
-                <span className="text-green-500">Operacional</span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
-                <span className="text-text-muted">IA Diagnostic (OpenRouter)</span>
-                <span className="text-green-500">Operacional</span>
-              </div>
-              <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-wider">
-                <span className="text-text-muted">Scraper (Firecrawl)</span>
-                <span className="text-green-500">Operacional</span>
-              </div>
+            <div className="flex flex-col gap-6 relative z-10">
+              {[
+                { name: "Sonda Maps (Serper)", status: "ESTÁVEL", icon: Target, active: true },
+                { name: "Kernel ProspectOS (Claude)", status: "ESTÁVEL", icon: Cpu, active: true },
+                { name: "Web Crawler (Firecrawl)", status: "OPERACIONAL", icon: Activity, active: true },
+                { name: "Pipeline de Dados (Supabase)", status: "SINCRONIZADO", icon: Database, active: true }
+              ].map((s) => (
+                <div key={s.name} className="flex justify-between items-center group/item">
+                  <div className="flex items-center gap-4">
+                    <s.icon size={14} className="text-text-muted/30 group-hover/item:text-primary transition-colors" />
+                    <span className="text-[10px] font-black uppercase tracking-[0.15em] text-text-muted group-hover/item:text-white transition-colors">{s.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                     <span className="text-[10px] font-black text-success tracking-widest">{s.status}</span>
+                     <div className="w-1 h-1 rounded-full bg-success" />
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+            
+            <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-between">
+               <span className="text-[9px] font-black uppercase tracking-widest text-text-muted/40">Latência de Resposta</span>
+               <span className="text-[9px] font-mono text-primary">124ms</span>
+            </div>
+          </CardMiner>
         </div>
       </div>
     </div>
   );
 }
+
+const MapPin = ({ size, className }: { size?: number, className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);

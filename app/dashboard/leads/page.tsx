@@ -1,192 +1,286 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  Filter,
+  Plus,
+  ArrowRight,
+  MoreVertical,
+  CheckCircle2,
+  Clock,
+  ShieldAlert,
+  Zap,
+  Globe,
+  MessageSquare,
+  BarChart3,
+  Loader2,
+  Layers,
+  Sparkles,
+  Activity,
+  Target,
+  Database,
+  ExternalLink,
+  ChevronRight,
+  Download
+} from "lucide-react";
 
-const STATUS_COLORS: Record<string, string> = {
-  extraido: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  qualificado: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  abordado: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  convertido: "bg-green-500/10 text-green-400 border-green-500/20",
-  descartado: "bg-red-500/10 text-red-400 border-red-500/20",
-};
+import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
+import { ButtonMiner } from "@/components/ui/ButtonMiner";
+import { BadgeMiner } from "@/components/ui/BadgeMiner";
 
 export default function LeadsPage() {
+  const router = useRouter();
   const [leads, setLeads] = useState<any[]>([]);
-  const [filter, setFilter] = useState("todos");
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("TODOS");
 
   useEffect(() => {
     fetch("/api/leads")
-      .then(async r => {
-        const d = await r.json();
-        if (!r.ok) { setFetchError(d.error || `Erro ${r.status}`); return; }
-        setLeads(d.leads || []);
+      .then((res) => res.json())
+      .then((data) => {
+        setLeads(data.leads || []);
+        setLoading(false);
       })
-      .catch(e => setFetchError(e.message || "Erro de rede"))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        console.error("Erro ao carregar leads:", err);
+        setLoading(false);
+      });
   }, []);
 
-  const filtered = leads.filter(l => {
-    const matchStatus = filter === "todos" || l.status === filter;
-    const matchSearch = !search || 
-      l.name?.toLowerCase().includes(search.toLowerCase()) || 
-      l.address?.toLowerCase().includes(search.toLowerCase()) ||
-      l.niche?.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+  const filteredLeads = leads.filter(lead => {
+    const matchesSearch = 
+      lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (lead.niche || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (lead.diagnosis?.niche || "").toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = 
+      filterStatus === "TODOS" || 
+      lead.status.toUpperCase() === filterStatus;
+
+    return matchesSearch && matchesStatus;
   });
 
-  const handleDelete = async (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
-    const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
-    if (!res.ok) {
-      const r = await fetch("/api/leads");
-      const d = await r.json();
-      setLeads(d.leads || []);
-    }
+  const exportToCSV = () => {
+    if (filteredLeads.length === 0) return;
+    
+    const headers = ["Nome", "Nicho", "Status", "Telefone", "Endereço", "Score", "Vulnerabilidade"];
+    const csvContent = [
+      headers.join(","),
+      ...filteredLeads.map(lead => [
+        `"${lead.name}"`,
+        `"${lead.niche || lead.diagnosis?.niche || ''}"`,
+        `"${lead.status}"`,
+        `"${lead.phone || ''}"`,
+        `"${lead.address || ''}"`,
+        lead.score || 0,
+        `"${lead.diagnosis?.vulnerability_level || ''}"`
+      ].join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `leads_finch_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const handleWhatsApp = (lead: any) => {
-    const phone = lead.phone?.replace(/\D/g, "");
-    const text = encodeURIComponent(lead.whatsapp_copy || "Olá!");
-    window.open(`https://wa.me/55${phone}?text=${text}`, "_blank");
-  };
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
+      <div className="relative">
+        <div className="absolute inset-0 bg-primary blur-3xl opacity-20 animate-pulse" />
+        <Loader2 className="animate-spin text-primary relative" size={64} />
+      </div>
+      <div className="text-center">
+        <p className="text-[12px] font-black uppercase tracking-[0.4em] text-white animate-pulse">Sincronizando Dossiê de Inteligência...</p>
+        <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-2 opacity-40 italic">Acessando Kernel ProspectOS v1.0</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="p-8 flex flex-col gap-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-5xl font-black tracking-tighter uppercase">Leads</h2>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-text-muted mt-2">{leads.length} prospectos na base central</p>
+    <div className="p-8 max-w-[1600px] mx-auto flex flex-col gap-10 animate-in fade-in duration-1000">
+      
+      {/* Intelligence Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 bg-black/40 border border-white/5 p-10 rounded-sm relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
+        <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none group-hover:opacity-[0.05] transition-opacity">
+           <Database size={200} />
         </div>
-        <Link href="/dashboard/kanban" className="btn-finch py-4 px-8">Visualizar Kanban</Link>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+             <BadgeMiner variant="primary" className="py-1 px-3 text-[9px]">Intelligence Hub</BadgeMiner>
+             <div className="h-4 w-px bg-white/10" />
+             <span className="text-text-muted text-[10px] font-black uppercase tracking-widest opacity-40 italic">RELATÓRIO GLOBAL DE EXTRAÇÃO</span>
+          </div>
+          <h1 className="text-6xl font-black tracking-tighter uppercase leading-none text-white">
+            CENTRAL DE <span className="text-primary">INTELIGÊNCIA</span>
+          </h1>
+          <p className="text-[11px] text-text-muted uppercase font-black tracking-[0.4em] mt-2 opacity-60">
+            Acesso bruto a todos os prospectos minerados e seus respectivos diagnósticos.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
+           <ButtonMiner 
+            variant="outline" 
+            icon={Download} 
+            onClick={exportToCSV}
+            className="h-16 px-8 border-white/10 text-text-muted hover:text-white"
+           >
+            EXPORTAR BASE
+           </ButtonMiner>
+           <ButtonMiner 
+            onClick={() => router.push("/dashboard/campanhas/nova")}
+            icon={Plus}
+            className="h-16 px-10 shadow-purple text-xs tracking-widest"
+           >
+            NOVA SONDA
+           </ButtonMiner>
+        </div>
       </div>
 
-      {/* Filters HUD */}
-      <div className="glass p-6 rounded-sm border border-white/5 flex flex-wrap gap-4 items-center justify-between">
-        <div className="flex-1 min-w-[300px]">
-          <input
-            type="text"
-            placeholder="Filtrar por nome, nicho ou endereço..."
-            className="w-full bg-white/5 border border-white/10 rounded-sm py-3 px-4 text-xs font-bold focus:outline-none focus:border-primary/50 transition-all"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {["todos", "extraido", "qualificado", "abordado", "convertido"].map(s => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest border rounded-sm transition-all ${
-                filter === s ? "bg-primary text-background border-primary" : "border-white/10 text-text-muted hover:border-primary/30 hover:text-primary"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
+      {/* Filter Bar */}
+      <div className="flex items-center justify-between p-6 bg-white/[0.02] border border-white/5 rounded-sm">
+         <div className="flex items-center gap-6">
+            <div className="relative">
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted opacity-40" size={16} />
+               <input 
+                 placeholder="FILTRAR POR NOME OU NICHO..."
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+                 className="bg-black/40 border border-white/5 h-12 pl-12 pr-6 text-[10px] font-black uppercase tracking-widest text-white outline-none focus:border-primary/40 transition-all rounded-sm w-[300px]"
+               />
+            </div>
+            <div className="h-6 w-px bg-white/10" />
+            <div className="flex items-center gap-4">
+               <span className="text-[9px] font-black text-text-muted uppercase tracking-widest">STATUS:</span>
+               <div className="flex gap-2">
+                  {['TODOS', 'QUALIFICADO', 'EXTRAÍDO'].map(f => (
+                     <button 
+                       key={f} 
+                       onClick={() => setFilterStatus(f)}
+                       className={`px-3 py-1.5 rounded-sm text-[9px] font-black tracking-widest border transition-all ${f === filterStatus ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-transparent border-white/5 text-text-muted hover:text-white'}`}
+                     >
+                        {f}
+                     </button>
+                  ))}
+               </div>
+            </div>
+         </div>
+         <div className="flex items-center gap-3 text-[10px] font-black text-text-muted uppercase tracking-widest opacity-40">
+            <Layers size={14} />
+            EXIBINDO {filteredLeads.length} REGISTROS
+         </div>
       </div>
 
-      {fetchError && (
-        <div className="text-xs text-red-400 border border-red-500/20 bg-red-500/5 rounded-sm px-4 py-3">
-          ⚠ {fetchError}
-        </div>
-      )}
-
-      {/* Leads Table HUD */}
-      <div className="glass rounded-sm border border-white/5 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-white/5 border-b border-white/10">
-              {["Prospecto", "Nicho / Endereço", "Status", "Score", "Ações"].map(h => (
-                <th key={h} className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="text-center py-32">
-                  <div className="inline-block w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-text-muted mt-4">Sincronizando Leads...</p>
-                </td>
-              </tr>
-            ) : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-32 text-text-muted text-[10px] uppercase font-bold tracking-widest">
-                  Nenhum registro encontrado na base.
-                </td>
-              </tr>
-            ) : (
-              filtered.map((lead, i) => (
-                <tr key={lead.id} className={`border-b border-white/5 hover:bg-white/3 transition-colors ${i % 2 === 0 ? "" : "bg-white/1"}`}>
-                  <td className="px-6 py-5">
-                    <div className="font-black text-sm uppercase tracking-tight text-white">{lead.name}</div>
-                    <div className="text-[10px] text-primary font-bold mt-1 tracking-wider">{lead.phone || "Sem Telefone"}</div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="text-[10px] uppercase font-black text-text-muted">{lead.niche || "Geral"}</div>
-                    <div className="text-[9px] text-text-muted/60 mt-1 max-w-[200px] truncate">{lead.address || "Endereço não informado"}</div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className={`px-2 py-1 text-[9px] font-black uppercase tracking-widest border rounded-sm ${STATUS_COLORS[lead.status] || STATUS_COLORS.extraido}`}>
-                      ● {lead.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5">
+      {/* Intelligence Grid */}
+      <CardMiner className="p-0 overflow-hidden border-white/5 bg-black/20">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[1200px]">
+            <thead>
+              <tr className="bg-white/[0.02] border-b border-white/5">
+                {[
+                  { label: "PROSPECTO", icon: Target },
+                  { label: "STATUS IA", icon: Sparkles },
+                  { label: "LOCALIZAÇÃO", icon: Globe },
+                  { label: "VULNERABILIDADE", icon: ShieldAlert },
+                  { label: "MINER SCORE", icon: BarChart3 },
+                  { label: "AÇÕES", icon: ArrowRight }
+                ].map(h => (
+                  <th key={h.label} className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.25em] text-text-muted">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-12 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary" style={{ width: `${lead.score || 0}%` }}></div>
-                      </div>
-                      <span className="font-black text-xs text-primary">{lead.score || 0}</span>
+                       <h.icon size={12} className="opacity-40" />
+                       {h.label}
                     </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex gap-2">
-                      {lead.phone && (
-                        <button
-                          onClick={() => handleWhatsApp(lead)}
-                          className="p-2 bg-green-500/10 border border-green-500/20 text-green-400 rounded-sm hover:bg-green-500 hover:text-background transition-all"
-                          title="Abrir WhatsApp"
-                        >
-                          📱
-                        </button>
-                      )}
-                      {lead.website && (
-                        <a href={lead.website} target="_blank" rel="noreferrer"
-                          className="p-2 bg-white/5 border border-white/10 text-text-muted rounded-sm hover:text-primary hover:border-primary/30 transition-all"
-                          title="Visitar Website"
-                        >
-                          🌐
-                        </a>
-                      )}
-                      <Link href={`/dashboard/leads/${lead.id}`}
-                        className="p-2 bg-white/5 border border-white/10 text-text-muted rounded-sm hover:text-primary transition-all"
-                        title="Ver Diagnóstico"
-                      >
-                        🔍
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(lead.id)}
-                        className="p-2 bg-white/5 border border-white/10 text-text-muted/40 rounded-sm hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/20 transition-all"
-                        title="Excluir lead"
-                      >
-                        ✕
-                      </button>
-                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredLeads.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-32 text-center opacity-20">
+                    <Database size={64} className="mx-auto mb-6" />
+                    <p className="text-[10px] font-black uppercase tracking-widest">Nenhum resultado encontrado</p>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredLeads.map((lead) => (
+                  <tr key={lead.id} className="group hover:bg-white/[0.02] transition-all border-l-2 border-transparent hover:border-primary">
+                    <td className="px-8 py-6">
+                      <div className="font-black text-sm uppercase tracking-tight text-white group-hover:text-primary transition-colors leading-none">{lead.name}</div>
+                      <div className="text-[9px] text-text-muted font-bold mt-2 tracking-widest opacity-40 uppercase">{lead.niche || lead.diagnosis?.niche || "SEGMENTO GERAL"}</div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <BadgeMiner variant={lead.status === 'qualificado' ? 'primary' : 'muted'} className="text-[8px] px-3 py-0.5 tracking-widest">
+                        {lead.status.toUpperCase()}
+                      </BadgeMiner>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted/60 uppercase tracking-widest">
+                         <Globe size={12} className="opacity-40" />
+                         {lead.address ? lead.address.split(',')[0] : "COORDENADA OCULTA"}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                       {lead.diagnosis?.vulnerability_level ? (
+                          <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest">
+                             <div className={`w-1.5 h-1.5 rounded-full ${lead.diagnosis.vulnerability_level === 'Crítica' ? 'bg-error animate-pulse' : 'bg-primary'}`} />
+                             {lead.diagnosis.vulnerability_level}
+                          </div>
+                       ) : (
+                          <span className="text-[9px] text-text-muted/20 font-black tracking-widest italic">AGUARDANDO...</span>
+                       )}
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="h-1.5 w-24 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                          <div 
+                            className={`h-full shadow-purple transition-all duration-1000 ${
+                              (lead.score || 0) >= 80 ? 'bg-primary' : (lead.score || 0) >= 50 ? 'bg-orange-500' : 'bg-red-500'
+                            }`} 
+                            style={{ width: `${lead.score || 0}%` }} 
+                          />
+                        </div>
+                        <span className="font-black text-xs text-white tracking-tighter">{lead.score || 0}%</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <ButtonMiner
+                          variant="outline"
+                          icon={MessageSquare}
+                          onClick={() => {
+                            if (lead.phone) {
+                              window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`, '_blank');
+                            }
+                          }}
+                          className={`h-10 w-10 p-0 flex items-center justify-center border-white/5 ${!lead.phone ? 'opacity-20 cursor-not-allowed' : 'hover:bg-success/10 hover:text-success hover:border-success/30'}`}
+                          title={lead.phone ? "Abordagem Direta" : "Telefone Indisponível"}
+                        />
+                        <ButtonMiner
+                          variant="outline"
+                          icon={ChevronRight}
+                          onClick={() => router.push(`/dashboard/leads/${lead.id}`)}
+                          className="h-10 w-10 p-0 flex items-center justify-center border-white/5 hover:border-primary/40 hover:text-primary transition-all"
+                          title="Ver Dossiê Completo"
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardMiner>
     </div>
   );
 }

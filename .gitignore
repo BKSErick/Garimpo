@@ -48,3 +48,6 @@ scratch_migrate.js
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# credenciais sensiveis
+DADOS_ACESSO.md

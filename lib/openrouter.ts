@@ -1,4 +1,4 @@
-export const queryOpenRouter = async (prompt: string, system: string = "Você é um especialista em copy e conversão estilo Thiago Finch.") => {
+export const queryOpenRouter = async (prompt: string, system: string = "Você é o Kernel do ProspectOS, um especialista em copy e prospecção de alta conversão. Seu objetivo é aplicar o Protocolo Nudge™.") => {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const model = process.env.AIOS_DEFAULT_MODEL || "anthropic/claude-3.5-sonnet";
 
@@ -11,8 +11,8 @@ export const queryOpenRouter = async (prompt: string, system: string = "Você é
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://garimpo-finch.vercel.app",
-      "X-Title": "Garimpo Finch"
+      "HTTP-Referer": "https://prospectos.ai",
+      "X-Title": "ProspectOS"
     },
     body: JSON.stringify({
       model: model,
