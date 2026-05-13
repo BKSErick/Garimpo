@@ -1,8 +1,10 @@
 "use client";
 
+// edge runtime: no static generation — useSearchParams without Suspense is safe here
 export const runtime = 'edge';
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   ClipboardCopy, 
   Check, 
@@ -377,6 +379,7 @@ export default function KanbanPage() {
   const [sort, setSort] = useState<SortOption>("maior_score");
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
 
   const fetchLeads = useCallback(async () => {
     try {
@@ -393,6 +396,11 @@ export default function KanbanPage() {
   }, []);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+
+  useEffect(() => {
+    const leadId = searchParams.get("lead");
+    if (leadId && leads.length > 0) setSelectedId(leadId);
+  }, [searchParams, leads]);
 
   const handleQualify = async (id: string) => {
     setQualifyingId(id);

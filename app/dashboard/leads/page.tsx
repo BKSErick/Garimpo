@@ -23,7 +23,9 @@ import {
   Database,
   ExternalLink,
   ChevronRight,
-  Download
+  Download,
+  Trello,
+  Mail
 } from "lucide-react";
 
 import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
@@ -66,13 +68,14 @@ export default function LeadsPage() {
   const exportToCSV = () => {
     if (filteredLeads.length === 0) return;
     
-    const headers = ["Nome", "Nicho", "Status", "Telefone", "Endereço", "Score", "Vulnerabilidade"];
+    const headers = ["Nome", "Nicho", "Status", "Email", "Telefone", "Endereço", "Score", "Vulnerabilidade"];
     const csvContent = [
       headers.join(","),
       ...filteredLeads.map(lead => [
         `"${lead.name}"`,
         `"${lead.niche || lead.diagnosis?.niche || ''}"`,
         `"${lead.status}"`,
+        `"${lead.email || ''}"`,
         `"${lead.phone || ''}"`,
         `"${lead.address || ''}"`,
         lead.score || 0,
@@ -190,6 +193,7 @@ export default function LeadsPage() {
                   { label: "PROSPECTO", icon: Target },
                   { label: "STATUS IA", icon: Sparkles },
                   { label: "LOCALIZAÇÃO", icon: Globe },
+                  { label: "EMAIL", icon: Mail },
                   { label: "VULNERABILIDADE", icon: ShieldAlert },
                   { label: "MINER SCORE", icon: BarChart3 },
                   { label: "AÇÕES", icon: ArrowRight }
@@ -230,6 +234,20 @@ export default function LeadsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
+                      {lead.email ? (
+                        <a
+                          href={`mailto:${lead.email}`}
+                          className="flex items-center gap-2 text-[10px] font-bold text-primary/70 hover:text-primary transition-colors uppercase tracking-widest"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <Mail size={12} className="opacity-60" />
+                          {lead.email}
+                        </a>
+                      ) : (
+                        <span className="text-[9px] text-text-muted/20 font-black tracking-widest italic">NÃO EXTRAÍDO</span>
+                      )}
+                    </td>
+                    <td className="px-8 py-6">
                        {lead.diagnosis?.vulnerability_level ? (
                           <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest">
                              <div className={`w-1.5 h-1.5 rounded-full ${lead.diagnosis.vulnerability_level === 'Crítica' ? 'bg-error animate-pulse' : 'bg-primary'}`} />
@@ -264,6 +282,13 @@ export default function LeadsPage() {
                           }}
                           className={`h-10 w-10 p-0 flex items-center justify-center border-white/5 ${!lead.phone ? 'opacity-20 cursor-not-allowed' : 'hover:bg-success/10 hover:text-success hover:border-success/30'}`}
                           title={lead.phone ? "Abordagem Direta" : "Telefone Indisponível"}
+                        />
+                        <ButtonMiner
+                          variant="outline"
+                          icon={Trello}
+                          onClick={() => router.push(`/dashboard/kanban?lead=${lead.id}`)}
+                          className="h-10 w-10 p-0 flex items-center justify-center border-white/5 hover:border-orange-500/40 hover:text-orange-400 transition-all"
+                          title="Ver no Kanban"
                         />
                         <ButtonMiner
                           variant="outline"

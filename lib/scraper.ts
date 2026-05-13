@@ -7,6 +7,7 @@ type SiteAnalysis = {
   hasWhatsApp: boolean;
   hasInstagram: boolean;
   issues: string[];
+  email: string | null;
 };
 
 export const scrapeSite = async (url: string): Promise<SiteAnalysis> => {
@@ -17,7 +18,8 @@ export const scrapeSite = async (url: string): Promise<SiteAnalysis> => {
     title: url,
     hasWhatsApp: false,
     hasInstagram: false,
-    issues: ["Site não analisado"]
+    issues: ["Site não analisado"],
+    email: null,
   };
 
   if (!url || !apiKey) return empty;
@@ -78,12 +80,19 @@ export const scrapeSite = async (url: string): Promise<SiteAnalysis> => {
     if (wordCount < 150) issues.push("Site com conteúdo raso — não ranqueia e não convence");
     if (!hasInstagram) issues.push("Sem presença em redes sociais visível no site");
 
+    // Extração de email via regex — ignora emails de imagens/ícones e domínios de mídia social
+    const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+    const ignoredDomains = ["sentry.io", "wix.com", "example.com", "gmail.com", "hotmail.com", "yahoo.com", "outlook.com"];
+    const emailMatches = content.match(emailRegex) || [];
+    const email = emailMatches.find(e => !ignoredDomains.some(d => e.endsWith(d))) || null;
+
     return {
       content: content.substring(0, 3000),
       title,
       hasWhatsApp,
       hasInstagram,
-      issues
+      issues,
+      email,
     };
 
   } catch (e: any) {

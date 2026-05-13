@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
-  Megaphone, 
-  Target, 
-  Trello, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Megaphone,
+  Target,
+  Trello,
+  Settings,
   LogOut,
   Zap,
   Radar,
@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   Cpu,
   Layers,
-  Sparkles
+  Sparkles,
+  ShieldAlert
 } from "lucide-react";
 
 const navItems = [
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/dashboard/campanhas", icon: Megaphone, label: "OPERAÇÕES" },
   { href: "/dashboard/leads", icon: Target, label: "INTELIGÊNCIA" },
   { href: "/dashboard/kanban", icon: Trello, label: "PIPELINE" },
+  { href: "/dashboard/quebra-objecoes", icon: ShieldAlert, label: "OBJEÇÕES" },
   { href: "/dashboard/configuracoes", icon: Settings, label: "PLANO E USO" },
 ];
 

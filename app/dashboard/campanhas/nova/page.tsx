@@ -2,7 +2,7 @@
 
 export const runtime = 'edge';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Rocket,
@@ -19,7 +19,9 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  Radar
+  Radar,
+  Brain,
+  ChevronDown
 } from "lucide-react";
 
 import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
@@ -35,6 +37,29 @@ export default function NovaCampanhaPage() {
   const [icp, setIcp] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [personas, setPersonas] = useState<any[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>("");
+  const [source, setSource] = useState<"google" | "instagram">("google");
+
+  useEffect(() => {
+    fetch("/api/strategy/save")
+      .then(r => r.json())
+      .then(d => setPersonas(d.data || []))
+      .catch(() => {});
+  }, []);
+
+  const handlePersonaSelect = (personaId: string) => {
+    setSelectedPersonaId(personaId);
+    if (!personaId) return;
+    const persona = personas.find((p: any) => p.id === personaId);
+    if (!persona) return;
+    if (persona.briefing?.business) setProduct(persona.briefing.business);
+    const icpParts = [
+      persona.briefing?.decision_maker,
+      persona.briefing?.problem,
+    ].filter(Boolean);
+    if (icpParts.length > 0) setIcp(icpParts.join(" — "));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +70,7 @@ export default function NovaCampanhaPage() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, niche, location, product, icp }),
+        body: JSON.stringify({ name, niche, location, product, icp, source }),
       });
 
       const data = await res.json();
@@ -92,6 +117,39 @@ export default function NovaCampanhaPage() {
           
           <form onSubmit={handleSubmit} className="flex flex-col gap-10">
             <div className="space-y-8">
+              {/* SOURCE TOGGLE */}
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted flex items-center gap-2">
+                  <Radar size={14} className="text-primary/60" />
+                  FONTE DE MINERAÇÃO
+                </label>
+                <div className="flex gap-3">
+                  {[
+                    { value: "google", label: "GOOGLE MAPS", icon: "🗺️" },
+                    { value: "instagram", label: "INSTAGRAM", icon: "📸" },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setSource(opt.value as "google" | "instagram")}
+                      className={`flex-1 flex items-center justify-center gap-3 h-14 px-6 rounded-sm text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                        source === opt.value
+                          ? "bg-primary/10 border-primary/40 text-primary shadow-purple-sm"
+                          : "bg-black/40 border-white/5 text-text-muted hover:text-white hover:border-white/20"
+                      }`}
+                    >
+                      <span>{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {source === "instagram" && (
+                  <p className="text-[9px] text-primary/60 font-black uppercase tracking-widest">
+                    ⚡ Busca perfis de negócios no Instagram via Google — retorna handles e bio públicas
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-4">
                 <label className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted flex items-center gap-2">
                   <Rocket size={14} className="text-primary/60" />
@@ -135,6 +193,37 @@ export default function NovaCampanhaPage() {
                   />
                 </div>
               </div>
+
+              {/* USAR PERSONA DO LAB */}
+              {personas.length > 0 && (
+                <div className="space-y-4 pt-6 border-t border-white/5">
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-2">
+                    <Brain size={14} />
+                    USAR PERSONA DO LAB (OPCIONAL)
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedPersonaId}
+                      onChange={e => handlePersonaSelect(e.target.value)}
+                      className="w-full appearance-none bg-black/40 border-2 border-primary/10 p-5 pr-12 text-sm font-black uppercase tracking-wider text-white focus:border-primary/40 focus:bg-primary/[0.05] transition-all outline-none rounded-sm cursor-pointer"
+                    >
+                      <option value="" className="bg-black text-white/40">— SELECIONAR PERSONA SALVA —</option>
+                      {personas.map((p: any) => (
+                        <option key={p.id} value={p.id} className="bg-black text-white">
+                          {p.name || `PERSONA ${p.id.slice(0, 6).toUpperCase()}`}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-primary/40 pointer-events-none" size={18} />
+                  </div>
+                  {selectedPersonaId && (
+                    <p className="text-[9px] text-primary/60 uppercase font-black tracking-widest flex items-center gap-2">
+                      <CheckCircle2 size={12} />
+                      PRODUTO E ICP PREENCHIDOS AUTOMATICAMENTE — AJUSTE SE NECESSÁRIO
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* NOVOS CAMPOS ESTRATÉGICOS */}
               <div className="space-y-8 pt-6 border-t border-white/5">

@@ -9,7 +9,7 @@ const PLAN_LIMITS: Record<string, number> = {
 };
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { searchLeads } from "@/lib/prospector";
+import { searchLeads, searchLeadsInstagram } from "@/lib/prospector";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -50,7 +50,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, niche, location, product, icp } = await req.json();
+    const { name, niche, location, product, icp, source } = await req.json();
     
     // 0. Identificar Usuário e Plano
     const cookieStore = await cookies();
@@ -115,8 +115,9 @@ export async function POST(req: Request) {
 
     if (campaignError) throw campaignError;
 
-    // 2. Disparar a busca de leads
-    const { leads, error: searchError } = await searchLeads(niche, campaign.id, { location });
+    // 2. Disparar a busca de leads (Google Maps ou Instagram)
+    const searchFn = source === "instagram" ? searchLeadsInstagram : searchLeads;
+    const { leads, error: searchError } = await searchFn(niche, campaign.id, { location });
 
     if (searchError) {
       return NextResponse.json({ 

@@ -185,6 +185,109 @@ export const searchLeads = async (query: string, campaignId?: string, metadata?:
   return { campaignId: activeCampaignId, leads: savedLeads || [] };
 };
 
+export const searchLeadsInstagram = async (
+  query: string,
+  campaignId?: string,
+  metadata?: { location?: string }
+) => {
+  const apiKeys = (process.env.SERPER_API_KEYS || process.env.SERPER_API_KEY || "")
+    .split(",").map((k: string) => k.trim()).filter((k: string) => k);
+
+  if (apiKeys.length === 0) {
+    return { leads: [], error: "Configuração de API pendente (Serper)." };
+  }
+
+  let activeCampaignId = campaignId;
+
+  const location = metadata?.location || "";
+  const searchQuery = `site:instagram.com "${query}" ${location} negócio`.trim();
+  console.log(`📸 Garimpo Instagram: "${searchQuery}"`);
+
+  let data: any = null;
+  let lastError = "";
+
+  for (const key of apiKeys) {
+    try {
+      const response = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "X-API-KEY": key, "Content-Type": "application/json" },
+        body: JSON.stringify({ q: searchQuery, num: 20, gl: "br", hl: "pt" }),
+      });
+      const resData = await response.json();
+      if (response.ok && !resData.error && resData.message !== "Unauthorized.") {
+        data = resData;
+        break;
+      } else {
+        lastError = resData.error || resData.message || response.statusText;
+      }
+    } catch (e: any) {
+      lastError = e.message;
+    }
+  }
+
+  if (!data) return { campaignId: activeCampaignId, leads: [], error: lastError };
+
+  const results: any[] = data.organic || [];
+  if (results.length === 0) return { campaignId: activeCampaignId, leads: [] };
+
+  // Parse Instagram results — title format: "Nome (@handle) • Fotos e vídeos do Instagram"
+  const leads = results
+    .filter((r: any) => r.link?.includes("instagram.com/"))
+    .map((r: any) => {
+      const handle = r.link.replace(/https?:\/\/(www\.)?instagram\.com\//, "").split("/")[0].split("?")[0];
+      const titleMatch = r.title?.match(/^(.+?)\s*\(@?[\w.]+\)/);
+      const name = titleMatch ? titleMatch[1].trim() : (handle || r.title || "Perfil Instagram");
+
+      return {
+        campaign_id: activeCampaignId,
+        name,
+        website: `https://instagram.com/${handle}`,
+        phone: null,
+        address: location || null,
+        status: "extraido",
+        score: 0,
+        diagnosis: {
+          niche: query,
+          instagram_handle: handle,
+          bio: r.snippet || null,
+          source: "instagram",
+        },
+        raw_data: r,
+      };
+    });
+
+  // Dedup por handle
+  let leadsToInsert = leads;
+  if (activeCampaignId) {
+    const { data: existing } = await supabaseAdmin
+      .from("leads").select("name, website").eq("campaign_id", activeCampaignId);
+    if (existing && existing.length > 0) {
+      const existingUrls = new Set(existing.map((l: any) => l.website));
+      leadsToInsert = leads.filter((l: any) => !existingUrls.has(l.website));
+    }
+  }
+
+  if (leadsToInsert.length === 0) return { campaignId: activeCampaignId, leads: [] };
+
+  const { data: savedLeads, error } = await supabaseAdmin
+    .from("leads").insert(leadsToInsert).select();
+
+  if (error) {
+    console.error("❌ Erro ao salvar leads Instagram:", error.message);
+    return { campaignId: activeCampaignId, leads: [], error: error.message };
+  }
+
+  if (activeCampaignId) {
+    await supabaseAdmin
+      .from("campaigns")
+      .update({ total_leads: savedLeads?.length || 0 })
+      .eq("id", activeCampaignId);
+  }
+
+  console.log(`✅ Instagram: ${savedLeads?.length || 0} perfis salvos.`);
+  return { campaignId: activeCampaignId, leads: savedLeads || [] };
+};
+
 export const qualifyLead = async (leadId: string) => {
   const { data: lead } = await supabaseAdmin
     .from('leads')
@@ -246,7 +349,8 @@ export const qualifyLead = async (leadId: string) => {
         score,
         diagnosis,
         whatsapp_copy: whatsappCopy,
-        status: 'qualificado'
+        status: 'qualificado',
+        ...(siteAnalysis?.email ? { email: siteAnalysis.email } : {})
       })
       .eq('id', leadId)
       .select()
