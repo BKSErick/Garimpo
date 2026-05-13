@@ -38,6 +38,8 @@ export default function LeadsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("TODOS");
+  const [requalifying, setRequalifying] = useState(false);
+  const [requalifyProgress, setRequalifyProgress] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
     fetch("/api/leads")
@@ -64,6 +66,24 @@ export default function LeadsPage() {
 
     return matchesSearch && matchesStatus;
   });
+
+  const requalifyPending = async () => {
+    const pending = leads.filter(l => !l.diagnosis?.vulnerability_level);
+    if (pending.length === 0) return;
+    setRequalifying(true);
+    setRequalifyProgress({ done: 0, total: pending.length });
+    for (let i = 0; i < pending.length; i++) {
+      try {
+        const res = await fetch(`/api/leads/${pending[i].id}/qualify`, { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          setLeads(prev => prev.map(l => l.id === pending[i].id ? { ...l, ...data.lead } : l));
+        }
+      } catch {}
+      setRequalifyProgress({ done: i + 1, total: pending.length });
+    }
+    setRequalifying(false);
+  };
 
   const exportToCSV = () => {
     if (filteredLeads.length === 0) return;
@@ -130,22 +150,36 @@ export default function LeadsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-4">
-           <ButtonMiner 
-            variant="outline" 
-            icon={Download} 
+        <div className="flex items-center gap-4 flex-wrap">
+          {leads.filter(l => !l.diagnosis?.vulnerability_level).length > 0 && (
+            <ButtonMiner
+              variant="outline"
+              icon={Sparkles}
+              onClick={requalifyPending}
+              isLoading={requalifying}
+              disabled={requalifying}
+              className="h-16 px-8 border-primary/30 text-primary hover:bg-primary/10"
+            >
+              {requalifying
+                ? `QUALIFICANDO ${requalifyProgress.done}/${requalifyProgress.total}...`
+                : `QUALIFICAR ${leads.filter(l => !l.diagnosis?.vulnerability_level).length} PENDENTES`}
+            </ButtonMiner>
+          )}
+          <ButtonMiner
+            variant="outline"
+            icon={Download}
             onClick={exportToCSV}
             className="h-16 px-8 border-white/10 text-text-muted hover:text-white"
-           >
+          >
             EXPORTAR BASE
-           </ButtonMiner>
-           <ButtonMiner 
+          </ButtonMiner>
+          <ButtonMiner
             onClick={() => router.push("/dashboard/campanhas/nova")}
             icon={Plus}
             className="h-16 px-10 shadow-purple text-xs tracking-widest"
-           >
+          >
             NOVA SONDA
-           </ButtonMiner>
+          </ButtonMiner>
         </div>
       </div>
 
