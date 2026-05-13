@@ -6,16 +6,17 @@ export const runtime = 'edge';
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
-  ClipboardCopy, 
-  Check, 
-  RefreshCw, 
-  Zap, 
-  X, 
-  Phone, 
-  Globe, 
-  MapPin, 
+  ClipboardCopy,
+  Check,
+  RefreshCw,
+  Zap,
+  X,
+  Phone,
+  Globe,
+  MapPin,
   ExternalLink,
   ChevronRight,
+  ChevronLeft,
   Trash2,
   Trello,
   Search,
@@ -65,6 +66,14 @@ const COLUMNS = [
   { key: "convertido",  label: "Ouro Extraído",   icon: Check,    color: "border-success/40",   glow: "shadow-success-sm" },
   { key: "perdido",     label: "Descarte",         icon: ShieldAlert, color: "border-error/20", glow: "" },
 ];
+
+const COLUMN_ORDER = ["extraido", "qualificado", "abordado", "convertido", "perdido"];
+const NEXT_LABELS: Record<string, string> = {
+  qualificado: "REFINAR",
+  abordado: "ABORDAR",
+  convertido: "CONVERTER",
+  perdido: "DESCARTAR",
+};
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "maior_score",   label: "Riqueza (Score)" },
@@ -346,13 +355,25 @@ function LeadCard({ lead, onQualify, onMove, onOpen, onDelete }: {
       </div>
 
       <div className="flex items-center justify-between pt-5 border-t border-white/5 opacity-40 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-        <div className="flex gap-4">
-          <button className="text-text-muted hover:text-white transition-colors" title="Ver Site">
-            <Globe size={14} />
-          </button>
-          <button className="text-text-muted hover:text-white transition-colors" title="Ligar">
-            <Phone size={14} />
-          </button>
+        <div className="flex gap-2">
+          {COLUMN_ORDER.indexOf(lead.status) > 0 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMove(lead.id, COLUMN_ORDER[COLUMN_ORDER.indexOf(lead.status) - 1]); }}
+              className="p-2 text-text-muted/60 hover:text-white hover:bg-white/10 rounded-sm transition-all border border-white/5"
+              title="Voltar estágio"
+            >
+              <ChevronLeft size={12} />
+            </button>
+          )}
+          {COLUMN_ORDER.indexOf(lead.status) < COLUMN_ORDER.length - 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onMove(lead.id, COLUMN_ORDER[COLUMN_ORDER.indexOf(lead.status) + 1]); }}
+              className="flex items-center gap-1 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-sm transition-all border border-primary/20"
+              title="Avançar estágio"
+            >
+              {NEXT_LABELS[COLUMN_ORDER[COLUMN_ORDER.indexOf(lead.status) + 1]]} <ChevronRight size={10} />
+            </button>
+          )}
         </div>
         <div className="flex gap-3">
           {lead.status === "extraido" && (

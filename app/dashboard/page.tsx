@@ -42,12 +42,29 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [greeting, setGreeting] = useState("");
+  const [streak, setStreak] = useState(0);
+  const [todayLeads, setTodayLeads] = useState(0);
 
   useEffect(() => {
     const h = new Date().getHours();
     if (h < 12) setGreeting("Bom dia");
     else if (h < 18) setGreeting("Boa tarde");
     else setGreeting("Boa noite");
+
+    // Streak tracking
+    const today = new Date().toDateString();
+    const lastVisit = localStorage.getItem("finch_last_visit");
+    const savedStreak = parseInt(localStorage.getItem("finch_streak") || "0");
+    if (lastVisit !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const newStreak = lastVisit === yesterday.toDateString() ? savedStreak + 1 : 1;
+      localStorage.setItem("finch_streak", newStreak.toString());
+      localStorage.setItem("finch_last_visit", today);
+      setStreak(newStreak);
+    } else {
+      setStreak(savedStreak);
+    }
 
     fetchData();
   }, []);
@@ -60,6 +77,10 @@ export default function Dashboard() {
         setStats(data.stats || stats);
         setCampaigns(data.campaigns || []);
         setRecentLeads(data.recentLeads || []);
+        const todayCount = (data.recentLeads || []).filter((l: any) => {
+          return new Date(l.created_at).toDateString() === new Date().toDateString();
+        }).length;
+        setTodayLeads(todayCount);
       }
     } catch (e) {
       // server still booting
@@ -171,6 +192,41 @@ export default function Dashboard() {
           trend={{ value: 'ROAS 8.2x', positive: true }}
           className="bg-white/[0.02] border-white/5"
         />
+      </div>
+
+      {/* Missão Diária — Habit Tracker */}
+      <div className="flex items-center gap-6 p-6 bg-black/40 border border-white/5 rounded-sm overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="shrink-0 flex flex-col items-center justify-center w-20 h-20 rounded-sm bg-primary/10 border border-primary/20 relative">
+          <span className="text-3xl font-black text-primary leading-none">{streak}</span>
+          <span className="text-[8px] font-black text-primary/60 uppercase tracking-widest mt-1">dias</span>
+          {streak >= 3 && <span className="absolute -top-2 -right-2 text-base">🔥</span>}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">MISSÃO DIÁRIA</span>
+            <div className="h-3 w-px bg-white/10" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-text-muted/40">
+              {streak === 0 ? "Comece hoje" : streak === 1 ? "1º dia — bom começo!" : `${streak} dias em sequência`}
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+              <div
+                className="h-full bg-primary transition-all duration-1000 shadow-purple"
+                style={{ width: `${Math.min(100, (todayLeads / 5) * 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-black text-white shrink-0">
+              {todayLeads}<span className="text-text-muted/40">/5 leads hoje</span>
+            </span>
+          </div>
+        </div>
+        <div className="shrink-0 text-right hidden lg:block">
+          <p className="text-[9px] font-black uppercase tracking-widest text-text-muted/30">
+            {todayLeads >= 5 ? "🏆 Meta batida!" : todayLeads > 0 ? `Faltam ${5 - todayLeads}` : "Inicie uma extração"}
+          </p>
+        </div>
       </div>
 
       {/* Main Grid Layout */}
