@@ -14,8 +14,13 @@ function LoginForm() {
   const resetSuccess = searchParams.get("reset") === "success";
 
   const handleLogin = async () => {
-    setLoading(true);
     setError("");
+
+    if (!email.trim()) { setError("Informe seu email."); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Email inválido."); return; }
+    if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
+
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -27,7 +32,7 @@ function LoginForm() {
       const data = await res.json();
 
       if (data.success) {
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
       } else {
         setError(data.error);
       }
@@ -45,7 +50,7 @@ function LoginForm() {
 
       <div className="w-full max-w-md p-8 glass rounded-md z-10 flex flex-col gap-8 shadow-2xl border border-primary/20">
         <div className="flex flex-col items-center gap-2">
-          <h1 className="text-4xl font-black tracking-tighter text-primary">GARIMPO</h1>
+          <h1 className="text-4xl font-black tracking-tighter text-primary">PROSPECTOS</h1>
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-text-muted">Prospecção de Outliers</p>
         </div>
 

@@ -51,3 +51,5 @@ next-env.d.ts
 
 # credenciais sensiveis
 DADOS_ACESSO.md
+
+.vercel

@@ -42,10 +42,8 @@ export default function Dashboard() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [greeting, setGreeting] = useState("");
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const h = new Date().getHours();
     if (h < 12) setGreeting("Bom dia");
     else if (h < 18) setGreeting("Boa tarde");
@@ -107,8 +105,6 @@ export default function Dashboard() {
     }
   };
 
-  if (!mounted) return null;
-
   return (
     <div className="p-8 flex flex-col gap-10 max-w-7xl mx-auto animate-in fade-in duration-1000">
       
@@ -126,7 +122,7 @@ export default function Dashboard() {
                 <div className="w-2 h-2 rounded-full bg-primary animate-pulse shadow-purple" />
                 <div className="w-2 h-2 rounded-full bg-primary/40 animate-pulse delay-75" />
               </div>
-              <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.4em]">{greeting}, OPERADOR ESTRATÉGICO</p>
+              <p className="text-text-muted text-[10px] font-black uppercase tracking-[0.4em]" suppressHydrationWarning>{greeting}, OPERADOR ESTRATÉGICO</p>
             </div>
             
             <h2 className="text-6xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9] text-white">

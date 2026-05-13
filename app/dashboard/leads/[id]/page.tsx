@@ -4,16 +4,16 @@ export const runtime = 'edge';
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { 
-  ChevronLeft, 
-  MessageSquare, 
-  Globe, 
-  MapPin, 
-  Target, 
-  Zap, 
-  Activity, 
-  ShieldCheck, 
-  Copy, 
+import {
+  ChevronLeft,
+  MessageSquare,
+  Globe,
+  MapPin,
+  Target,
+  Zap,
+  Activity,
+  ShieldCheck,
+  Copy,
   ExternalLink,
   Loader2,
   Trash2,
@@ -27,7 +27,9 @@ import {
   AlertTriangle,
   Calendar,
   Phone,
-  ShieldAlert
+  ShieldAlert,
+  Plus,
+  ChevronRight
 } from "lucide-react";
 import { CardMiner, CardMinerHeader, CardMinerTitle } from "@/components/ui/CardMiner";
 import { BadgeMiner } from "@/components/ui/BadgeMiner";
@@ -42,9 +44,56 @@ export default function LeadDetailPage() {
   const [activeTab, setActiveTab] = useState<"initial" | "followup">("initial");
   const [refreshingCopy, setRefreshingCopy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [objections, setObjections] = useState<any[]>([]);
+  const [newObjection, setNewObjection] = useState("");
+  const [addingObjection, setAddingObjection] = useState(false);
+  const [generatingBreakId, setGeneratingBreakId] = useState<string | null>(null);
+  const [expandedObjId, setExpandedObjId] = useState<string | null>(null);
+
+  const fetchObjections = async () => {
+    try {
+      const r = await fetch(`/api/leads/${id}/objections`);
+      const data = await r.json();
+      setObjections(data.objections || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const addObjection = async () => {
+    if (!newObjection.trim()) return;
+    setAddingObjection(true);
+    try {
+      const r = await fetch(`/api/leads/${id}/objections`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newObjection.trim() })
+      });
+      if (r.ok) { setNewObjection(""); fetchObjections(); }
+    } catch (e) { console.error(e); } finally { setAddingObjection(false); }
+  };
+
+  const generateBreak = async (objId: string) => {
+    setGeneratingBreakId(objId);
+    try {
+      const r = await fetch(`/api/leads/${id}/objections/${objId}/break`, { method: "POST" });
+      if (r.ok) fetchObjections();
+    } catch (e) { console.error(e); } finally { setGeneratingBreakId(null); }
+  };
+
+  const deleteObjection = async (objId: string) => {
+    if (!confirm("Remover esta objeção?")) return;
+    try {
+      await fetch(`/api/leads/${id}/objections`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ objId })
+      });
+      fetchObjections();
+    } catch (e) { console.error(e); }
+  };
 
   useEffect(() => {
     fetchLead();
+    fetchObjections();
   }, [id]);
 
   const fetchLead = async () => {
@@ -486,6 +535,97 @@ export default function LeadDetailPage() {
           </CardMiner>
         </div>
       </div>
+
+      {/* MINHAS OBJEÇÕES */}
+      <CardMiner className="p-0 overflow-hidden border-white/5 bg-black/20">
+        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <MessageSquare className="text-primary" size={20} />
+            <CardMinerTitle className="uppercase text-base">Minhas Objeções</CardMinerTitle>
+          </div>
+          <span className="text-[9px] font-black text-text-muted uppercase tracking-[0.3em]">{objections.length} registros</span>
+        </div>
+
+        <div className="divide-y divide-white/5">
+          {objections.length === 0 ? (
+            <div className="p-12 flex flex-col items-center gap-3 opacity-20">
+              <MessageSquare size={32} />
+              <p className="text-[10px] font-black uppercase tracking-widest">Nenhuma objeção registrada</p>
+            </div>
+          ) : (
+            objections.map((obj) => (
+              <div key={obj.id} className="group">
+                <button
+                  onClick={() => setExpandedObjId(expandedObjId === obj.id ? null : obj.id)}
+                  className="w-full p-8 flex items-center justify-between hover:bg-white/[0.02] transition-all text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <MessageSquare size={16} className="text-primary/50 shrink-0" />
+                    <span className="text-sm font-black uppercase tracking-tight text-white">"{obj.text}"</span>
+                  </div>
+                  <ChevronRight size={14} className={`text-text-muted transition-transform ${expandedObjId === obj.id ? "rotate-90" : ""}`} />
+                </button>
+
+                {expandedObjId === obj.id && (
+                  <div className="px-8 pb-8 flex flex-col gap-4">
+                    <div className="p-6 bg-white/[0.02] border border-white/5 rounded-sm flex items-start justify-between gap-4 min-h-[60px]">
+                      {obj.ai_response ? (
+                        <p className="text-sm text-white/80 leading-relaxed font-medium">{obj.ai_response}</p>
+                      ) : (
+                        <p className="text-[10px] font-black uppercase tracking-widest text-text-muted/40 italic">Sem resposta ainda</p>
+                      )}
+                      <ButtonMiner
+                        icon={Zap}
+                        isLoading={generatingBreakId === obj.id}
+                        onClick={() => generateBreak(obj.id)}
+                        className="shrink-0 h-10 px-6 text-[10px] tracking-widest"
+                      >
+                        IA GERAR QUEBRA
+                      </ButtonMiner>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <ButtonMiner
+                        icon={Zap}
+                        isLoading={generatingBreakId === obj.id}
+                        onClick={() => generateBreak(obj.id)}
+                        className="h-10 px-6 text-[10px] tracking-widest"
+                      >
+                        IA GERAR QUEBRA
+                      </ButtonMiner>
+                      <button
+                        onClick={() => deleteObjection(obj.id)}
+                        className="p-2 text-text-muted/30 hover:text-error transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="p-8 border-t border-white/5 flex gap-4">
+          <input
+            type="text"
+            placeholder='Ex: "Já tenho outro fornecedor..."'
+            className="flex-1 bg-black/40 border border-white/5 rounded-sm px-5 py-3 text-[11px] font-bold text-white uppercase placeholder:text-white/10 focus:border-primary/40 focus:outline-none transition-all"
+            value={newObjection}
+            onChange={(e) => setNewObjection(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addObjection()}
+          />
+          <ButtonMiner
+            icon={Plus}
+            isLoading={addingObjection}
+            onClick={addObjection}
+            variant="outline"
+            className="h-12 px-6 text-[10px]"
+          >
+            REGISTRAR
+          </ButtonMiner>
+        </div>
+      </CardMiner>
     </div>
   );
 }
