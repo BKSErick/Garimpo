@@ -410,7 +410,10 @@ export default function LeadDetailPage() {
                 <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-white">Pontos Cegos (Falsa Ruína)</h3>
               </div>
               <p className="text-sm text-text-muted leading-relaxed font-medium">
-                {lead.flaws || "Análise de vulnerabilidade pendente. Execute o diagnóstico para mapear falhas críticas no posicionamento atual."}
+                {(Array.isArray((lead.diagnosis as any)?.flaws)
+                  ? (lead.diagnosis as any).flaws.join(' — ')
+                  : (lead.diagnosis as any)?.flaws) ||
+                  "Análise de vulnerabilidade pendente. Execute o diagnóstico para mapear falhas críticas no posicionamento atual."}
               </p>
             </CardMiner>
 
@@ -420,7 +423,7 @@ export default function LeadDetailPage() {
                 <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-white">Mecanismo Único Proposto</h3>
               </div>
               <p className="text-sm text-text-muted italic leading-relaxed font-medium">
-                "{lead.unique_mechanism || "O mecanismo único será forjado após o mapeamento das falhas críticas do prospecto."}"
+                "{(lead.diagnosis as any)?.unique_mechanism || "O mecanismo único será forjado após o mapeamento das falhas críticas do prospecto."}"
               </p>
             </CardMiner>
           </div>
