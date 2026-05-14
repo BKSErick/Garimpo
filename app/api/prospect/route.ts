@@ -1,4 +1,5 @@
-export const runtime = 'edge';
+export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 import { NextResponse } from "next/server";
 import { searchLeads, qualifyLead } from "@/lib/prospector";
